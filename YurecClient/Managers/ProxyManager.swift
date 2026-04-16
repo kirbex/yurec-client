@@ -164,8 +164,8 @@ class ProxyManager: ObservableObject {
         // Attach the forwarder after a successful launch.
         let forwarder = LogForwarder(logURL: logURL)
         logForwarder = forwarder
-        forwarder.forward(stdoutPipe.fileHandleForReading)
-        forwarder.forward(stderrPipe.fileHandleForReading)
+        forwarder?.forward(stdoutPipe.fileHandleForReading)
+        forwarder?.forward(stderrPipe.fileHandleForReading)
 
         let pid = task.processIdentifier
         print("[YurecClient] start: launched PID=\(pid) mode=\(mode)")
