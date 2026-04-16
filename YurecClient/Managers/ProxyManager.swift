@@ -15,6 +15,7 @@ class ProxyManager: ObservableObject {
     private var statusTimer: Timer?
     private var binaryPath: String = ""
     private var tempConfigURL: URL?   // temp file for SOCKS5 transformed config
+    private var logForwarder: LogForwarder?
 
     private init() {
         print("[YurecClient] ProxyManager.init: start")
@@ -116,55 +117,55 @@ class ProxyManager: ObservableObject {
             }
         }
 
-        // Open (or create) the log file in append mode.
-        // If the user has configured a size limit, truncate before opening so the
-        // new session starts from a clean file rather than appending to a huge one.
+        // Prepare the log file. If the size limit is configured and already exceeded,
+        // clear it now so this session starts in a clean file.
         let logURL = ProxyManager.singBoxLogURL
         if !FileManager.default.fileExists(atPath: logURL.path) {
             FileManager.default.createFile(atPath: logURL.path, contents: nil)
         }
         truncateLogIfNeeded(at: logURL)
-        guard let outHandle = FileHandle(forWritingAtPath: logURL.path) else {
+
+        // Write a timestamped session separator directly to the file before the
+        // forwarder takes over writes. The forwarder will initialise its byte counter
+        // from the current file size, so the separator counts toward the limit.
+        guard let headerHandle = FileHandle(forWritingAtPath: logURL.path) else {
             print("[YurecClient] start: cannot open log file at \(logURL.path)")
             return
         }
-        // Seek to end (append) and write a timestamped session separator
-        outHandle.seekToEndOfFile()
-        let separator = "\n\n--- YurecClient: starting \(mode) @ \(Date()) ---\n\n"
-        outHandle.write(Data(separator.utf8))
+        headerHandle.seekToEndOfFile()
+        headerHandle.write(Data("\n\n--- YurecClient: starting \(mode) @ \(Date()) ---\n\n".utf8))
+        headerHandle.closeFile()
 
-        // dup() the fd so stdout and stderr get independent file descriptors pointing to
-        // the same log file. Using the SAME FileHandle for both can cause NSTask to silently
-        // drop one of the redirections (it may close the source fd after the first dup2).
-        let dupFd = dup(outHandle.fileDescriptor)
-        let errHandle: FileHandle = dupFd >= 0
-            ? FileHandle(fileDescriptor: dupFd, closeOnDealloc: true)
-            : outHandle
+        // Route sing-box stdout/stderr through Pipes so LogForwarder controls all
+        // writes. This lets it enforce the size limit in real time: when bytes written
+        // exceed the limit it truncates the file and seeks back to 0, so the file
+        // never grows beyond the configured cap regardless of session length.
+        let stdoutPipe = Pipe()
+        let stderrPipe = Pipe()
 
         // Build the process directly — no sh wrapper, no pipe dance, no PID parsing.
         // Process.processIdentifier gives us a reliable PID, terminationHandler fires on exit.
         let task = Process()
         if mode.requiresRoot {
-            // TUN: sudo -n /path/to/sing-box run -c config.json
             task.executableURL = URL(fileURLWithPath: "/usr/bin/sudo")
             task.arguments = ["-n", binaryPath, "run", "-c", configPath]
         } else {
-            // SOCKS5: /path/to/sing-box run -c config.json  (no root needed)
             task.executableURL = URL(fileURLWithPath: binaryPath)
             task.arguments = ["run", "-c", configPath]
         }
-        task.standardOutput = outHandle
-        task.standardError = errHandle
+        task.standardOutput = stdoutPipe
+        task.standardError = stderrPipe
 
         guard (try? task.run()) != nil else {
             print("[YurecClient] start: failed to launch process")
-            outHandle.closeFile()
-            errHandle.closeFile()
             return
         }
-        // Parent no longer needs the file handles; the child has its own fd copies
-        outHandle.closeFile()
-        errHandle.closeFile()
+
+        // Attach the forwarder after a successful launch.
+        let forwarder = LogForwarder(logURL: logURL)
+        logForwarder = forwarder
+        forwarder.forward(stdoutPipe.fileHandleForReading)
+        forwarder.forward(stderrPipe.fileHandleForReading)
 
         let pid = task.processIdentifier
         print("[YurecClient] start: launched PID=\(pid) mode=\(mode)")
@@ -219,6 +220,8 @@ class ProxyManager: ObservableObject {
     }
 
     private func cleanupMode() {
+        logForwarder?.stop()
+        logForwarder = nil
         if let url = tempConfigURL {
             try? FileManager.default.removeItem(at: url)
             tempConfigURL = nil
@@ -655,6 +658,8 @@ class ProxyManager: ObservableObject {
     func forceCleanup() {
         stopLaunchDetectionLoop()
         stopKqueueWatch()
+        logForwarder?.stop()
+        logForwarder = nil
         if let proc = runningProcess, proc.isRunning { proc.terminate() }
         if let pid = runningPID {
             if kill(pid, SIGTERM) != 0 && errno == EPERM {
@@ -689,15 +694,18 @@ class ProxyManager: ObservableObject {
 
     /// Clears the log file immediately (called from Settings).
     ///
-    /// Uses delete + recreate rather than truncate so the visible file on disk
-    /// becomes empty even while sing-box is running. The running process holds
-    /// an fd to the old (now unlinked) inode and keeps writing there harmlessly;
-    /// the new file at the same path starts fresh and stays empty until the next
-    /// sing-box session appends its separator.
+    /// If sing-box is running, delegates to LogForwarder.rotate() which truncates
+    /// the file and resets the write position to 0 — all subsequent output from
+    /// sing-box is written from the start of the file with no gap or data loss.
+    /// If sing-box is not running, deletes and recreates the file.
     func clearLog() {
-        let url = ProxyManager.singBoxLogURL
-        try? FileManager.default.removeItem(at: url)
-        FileManager.default.createFile(atPath: url.path, contents: nil)
+        if let forwarder = logForwarder {
+            forwarder.rotate()
+        } else {
+            let url = ProxyManager.singBoxLogURL
+            try? FileManager.default.removeItem(at: url)
+            FileManager.default.createFile(atPath: url.path, contents: nil)
+        }
         print("[YurecClient] log cleared manually")
     }
 
@@ -706,5 +714,84 @@ class ProxyManager: ObservableObject {
     /// Single-quotes a string for safe use in a POSIX shell command.
     private func shellQuote(_ s: String) -> String {
         "'" + s.replacingOccurrences(of: "'", with: "'\\''") + "'"
+    }
+}
+
+// MARK: - LogForwarder
+
+/// Reads from sing-box's stdout/stderr pipes on a background queue and writes
+/// to the log file, enforcing the configured size limit in real time.
+///
+/// When accumulated bytes exceed the limit, the file is truncated to zero and
+/// the write position resets to the beginning — subsequent output overwrites
+/// old content so the file never grows beyond the cap regardless of how long
+/// sing-box runs. rotate() does the same on demand (Clear Now button).
+final class LogForwarder {
+
+    private let fileHandle: FileHandle
+    private let logURL: URL
+    private let queue = DispatchQueue(label: "com.yurec.logforwarder", qos: .utility)
+    private var bytesWritten: Int = 0
+
+    init?(logURL: URL) {
+        guard let fh = FileHandle(forWritingAtPath: logURL.path) else { return nil }
+        fh.seekToEndOfFile()
+        self.fileHandle = fh
+        self.logURL = logURL
+        // Seed the counter from the current file size so the pre-existing separator
+        // line counts toward the limit.
+        if let attrs = try? FileManager.default.attributesOfItem(atPath: logURL.path),
+           let size = attrs[.size] as? Int {
+            bytesWritten = size
+        }
+    }
+
+    /// Attaches a readabilityHandler to `handle` that feeds incoming data to write(_:).
+    func forward(_ handle: FileHandle) {
+        handle.readabilityHandler = { [weak self] src in
+            let data = src.availableData
+            guard !data.isEmpty else {
+                src.readabilityHandler = nil   // EOF — pipe closed (process exited)
+                return
+            }
+            self?.write(data)
+        }
+    }
+
+    /// Truncates the file to zero and resets the write position.
+    /// Safe to call from any thread; serialised on the forwarder queue.
+    func rotate() {
+        queue.async { [weak self] in
+            guard let self else { return }
+            self.fileHandle.truncateFile(atOffset: 0)
+            self.fileHandle.seek(toFileOffset: 0)
+            self.bytesWritten = 0
+            print("[YurecClient] LogForwarder: rotated log file")
+        }
+    }
+
+    func stop() {
+        fileHandle.closeFile()
+    }
+
+    // MARK: - Private
+
+    private func write(_ data: Data) {
+        queue.async { [weak self] in
+            guard let self else { return }
+            let limitEnabled = UserDefaults.standard.bool(forKey: "logSizeLimitEnabled")
+            let limitMB = UserDefaults.standard.integer(forKey: "logSizeLimitMB")
+            if limitEnabled && limitMB > 0 {
+                let limitBytes = limitMB * 1024 * 1024
+                if self.bytesWritten + data.count > limitBytes {
+                    self.fileHandle.truncateFile(atOffset: 0)
+                    self.fileHandle.seek(toFileOffset: 0)
+                    self.bytesWritten = 0
+                    print("[YurecClient] LogForwarder: size limit reached (\(limitMB) MB), rotated")
+                }
+            }
+            self.fileHandle.write(data)
+            self.bytesWritten += data.count
+        }
     }
 }

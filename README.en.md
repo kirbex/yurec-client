@@ -315,11 +315,18 @@ The log can be opened from the menu: **Open Logs** — opens Finder with the fil
 In Settings (General → Logs):
 
 - **Current size** — current file size in B / KB / MB
-- **Clear Now** — clears the file immediately. Works even while sing-box is running: the file is deleted and a fresh empty one is created at the same path. The running process continues writing to the old inode via its open file descriptor — the new file stays clean until the next session starts
-- **Limit log file size** — enables automatic clearing when the limit is exceeded
-- **Max size** — threshold in megabytes (default 10 MB). Checked at the beginning of every new sing-box session: if the file exceeds the limit it is cleared before start
+- **Clear Now** — clears the file immediately: truncates it to zero and resets the write position to the beginning; works even while sing-box is running
+- **Limit log file size** — enables automatic size enforcement
+- **Max size** — threshold in megabytes (default 10 MB). Enforced both at session start and in real time during a running session
 
-Technical note: clearing uses `removeItem` + `createFile` rather than `truncateFile`. With `truncateFile`, a running sing-box immediately writes at its old offset and restores the file size. `removeItem` creates a new inode — the process continues writing to the unlinked file, which is no longer reachable by path on disk.
+### LogForwarder
+
+sing-box output is not redirected directly to a file. Instead, stdout/stderr are connected to `Pipe`s, and `LogForwarder` reads from both pipes via `readabilityHandler` on a background GCD queue and writes to the log file itself.
+
+This gives full control over every write:
+- When accumulated bytes exceed the limit → `fileHandle.truncateFile(atOffset: 0)` + `seek(toFileOffset: 0)` → the file is zeroed and writing continues from the beginning
+- **Clear Now** calls the same `rotate()` through the forwarder — no file deletion needed, sing-box keeps running without interruption
+- The file **never exceeds** the configured limit regardless of how long the session runs
 
 ---
 
