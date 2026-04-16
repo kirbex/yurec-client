@@ -17,8 +17,9 @@ struct AppRoutingEntry: Codable, Identifiable, Equatable, Hashable {
     /// Absolute path to the .app bundle, used for icon lookup.
     let appPath: String
 
-    // MARK: - Initialisation from a bundle URL
+    // MARK: - Initialisers
 
+    /// Initialise from a `.app` bundle URL.
     init(appURL: URL) {
         id = UUID()
         appPath = appURL.path
@@ -34,6 +35,54 @@ struct AppRoutingEntry: Codable, Identifiable, Equatable, Hashable {
         // Executable basename is what sing-box's process_name rule matches against
         processName = bundle?.executableURL?.lastPathComponent
             ?? appURL.deletingPathExtension().lastPathComponent
+    }
+
+    /// Initialise from a plain executable URL (not a `.app` bundle).
+    /// Use this for standalone binaries such as `claude`, `node`, etc.
+    init(executableURL: URL) {
+        id = UUID()
+        appPath = executableURL.path
+        bundleIdentifier = nil
+        displayName = executableURL.lastPathComponent
+        processName = executableURL.lastPathComponent
+    }
+
+    // MARK: - Process name resolution
+
+    /// All process names that should be included in the sing-box `process_name` routing rule.
+    ///
+    /// On macOS, apps spawn various sub-processes with different names:
+    ///   • Electron helper processes (`Claude Helper (Renderer)`, `Code Helper (Plugin)`, …)
+    ///   • Auto-updater processes (`Updater` inside Sparkle.framework)
+    ///   • XPC services (`Downloader`, `Installer` for Sparkle updates)
+    ///   • App extensions (`.appex`)
+    ///
+    /// We enumerate all `.app`, `.xpc`, and `.appex` bundles recursively inside the
+    /// main app's `Contents/` directory. When a sub-bundle is found we call
+    /// `skipDescendants()` so we don't descend into *its* internals — only bundles
+    /// that are direct sub-components of the top-level app are collected.
+    ///
+    /// Computed live from the bundle — no storage or migration needed.
+    var allProcessNames: [String] {
+        var names: [String] = [processName]
+        let contentsDir = URL(fileURLWithPath: appPath).appendingPathComponent("Contents")
+        guard let enumerator = FileManager.default.enumerator(
+            at: contentsDir,
+            includingPropertiesForKeys: [.isDirectoryKey],
+            options: .skipsHiddenFiles
+        ) else { return names }
+
+        let bundleExtensions: Set<String> = ["app", "xpc", "appex"]
+        for case let url as URL in enumerator {
+            guard bundleExtensions.contains(url.pathExtension) else { continue }
+            // Don't descend into this sub-bundle's own internals.
+            enumerator.skipDescendants()
+            if let name = Bundle(url: url)?.executableURL?.lastPathComponent,
+               !names.contains(name) {
+                names.append(name)
+            }
+        }
+        return names
     }
 
     // MARK: - UI helpers

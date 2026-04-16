@@ -113,24 +113,28 @@ private struct AppRoutingRowView: View {
 
 // MARK: - App picker helper
 
-/// Opens an NSOpenPanel pre-configured for picking .app bundles and returns
-/// `AppRoutingEntry` values for each selected app. Duplicate process names
+/// Opens an NSOpenPanel for picking `.app` bundles or plain executables and returns
+/// `AppRoutingEntry` values for each selection. Duplicate process names
 /// (compared to `existing`) are silently filtered out.
 func pickAppsForRouting(existing: [AppRoutingEntry]) -> [AppRoutingEntry] {
     let panel = NSOpenPanel()
-    panel.title = "Select Applications to Route via SOCKS5"
+    panel.title = "Select Applications or Executables to Route via VPN"
     panel.prompt = "Add"
+    panel.message = "Choose .app bundles or plain executables (e.g. /usr/local/bin/claude)"
     panel.allowsMultipleSelection = true
-    panel.canChooseFiles = true            // .app packages appear as files in the picker
+    panel.canChooseFiles = true
     panel.canChooseDirectories = false
     panel.treatsFilePackagesAsDirectories = false   // show .app as single item, not navigable
     panel.directoryURL = URL(fileURLWithPath: "/Applications")
 
     guard panel.runModal() == .OK else { return [] }
 
-    let existingNames = Set(existing.map(\.processName))
+    let existingNames = Set(existing.flatMap(\.allProcessNames))
     return panel.urls.compactMap { url -> AppRoutingEntry? in
-        let entry = AppRoutingEntry(appURL: url)
+        let entry = url.pathExtension == "app"
+            ? AppRoutingEntry(appURL: url)
+            : AppRoutingEntry(executableURL: url)
+        // Skip if the main process name is already covered
         return existingNames.contains(entry.processName) ? nil : entry
     }
 }

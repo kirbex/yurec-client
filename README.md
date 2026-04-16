@@ -12,6 +12,7 @@ macOS menu bar приложение — графический фронтенд 
 - [Режим SOCKS5](#режим-socks5)
 - [Профили](#профили)
 - [Маршрутизация по приложениям (App Routing)](#маршрутизация-по-приложениям-app-routing)
+- [Практическая настройка: ChatGPT, Claude, VS Code](#практическая-настройка)
 - [Sudoers и права](#sudoers-и-права)
 - [Автозапуск и авто-подключение](#автозапуск-и-авто-подключение)
 - [Обнаружение внешних процессов](#обнаружение-внешних-процессов)
@@ -63,7 +64,7 @@ YurecClient
 
 ### Что происходит
 
-TUN-режим создаёт виртуальный сетевой интерфейс на уровне ядра. Весь исходящий трафик системы перехватывается sing-box на уровне L3 (IP-пакеты), независимо от того, знает ли приложение о прокси или нет. Это полноценный «full VPN» режим.
+TUN-режим создаёт виртуальный сетевой интерфейс на уровне ядра. Весь исходящий трафик системы перехватывается sing-box на уровне L3 (IP-пакеты), независимо от того, знает ли приложение о прокси или нет. Это полноценный «full VPN» режим — весь трафик идёт через VPN.
 
 ### Последовательность запуска
 
@@ -100,7 +101,7 @@ ProxyManager.stop()
   1. SIGKILL всем дочерним sing-box процессам (pgrepSingBox + forceKillPIDs)
   2. killProcess() — terminate() + SIGTERM по PID
   3. DNSHelper.resetDNS() — сбросить DNS обратно на "empty" (DHCP)
-  4. cleanupMode() — удалить tempConfigURL (если есть), обнулить состояние
+  4. cleanupMode() — обнулить состояние
   5. isRunning = false
   6. startLaunchDetectionLoop() — начать следить за внешним запуском sing-box
 ```
@@ -109,75 +110,64 @@ ProxyManager.stop()
 
 ## Режим SOCKS5
 
-### Что происходит
+Режим SOCKS5 работает в двух подрежимах в зависимости от того, заполнен ли список App Routing:
 
-В SOCKS5-режиме sing-box запускается без TUN-интерфейса. Вместо перехвата на уровне L3 открывается SOCKS5-прокси сервер на `127.0.0.1:<port>` (по умолчанию 2080). Приложения должны явно использовать этот прокси.
+### Подрежим A: чистый SOCKS5 (список приложений пуст)
 
-Чтобы автоматически направить весь трафик через SOCKS5 без ручной настройки в каждом приложении, YurecClient устанавливает **системный прокси macOS** через `networksetup`. Это заставляет браузеры, Electron-приложения и любые приложения, уважающие системные настройки прокси, автоматически подключаться через sing-box.
+sing-box запускается без TUN-интерфейса. Открывается SOCKS5-прокси на `127.0.0.1:<port>`. YurecClient устанавливает **системный прокси macOS** через `networksetup` — браузеры, Electron-приложения и другие программы, уважающие системные настройки, автоматически начинают ходить через sing-box. Весь трафик через прокси уходит на VPN.
+
+### Подрежим B: гибридный TUN+SOCKS5 (список приложений непустой)
+
+Поднимается и **TUN-интерфейс** (перехватывает весь трафик системы), и **SOCKS5-прокси** (для приложений с явной настройкой прокси, например Telegram). Системный прокси macOS **не выставляется** — TUN уже перехватывает всё.
+
+Маршрутизация по процессам:
+- Приложения из списка → **через VPN** (`proxy` outbound)
+- Трафик через SOCKS5 inbound (Telegram и подобные) → **через VPN** всегда
+- Все остальные → **напрямую** (`direct`)
+
+Это позволяет, например, пускать через VPN только Claude, ChatGPT и VS Code, оставляя браузер, почту и остальное работать напрямую.
 
 ### Последовательность запуска
 
 ```
-StatusMenuController.connectSocks5()
-  └── beginConnect(to: .socks5(port:), profile:)
-        └── ProxyManager.start(profilePath:, mode: .socks5(port:))
-              1. killOrphanedSingBox()
-              2. ensurePortFreeForSocks5(port)    — проверить, что порт свободен
-                   └── hasListenerOnPort()         — connect() на 127.0.0.1:port
-                       если занят sing-box → SIGKILL
-                       если занят чужой процесс → лог + abort
-              3. AppRoutingStore.effectiveProcessNames(for: profile)
-                                                  — получить список process_name для инжекции
-              4. ConfigTransformer.makeSocks5Config(from:, port:, routedProcessNames:)
-                                                  — трансформировать конфиг (см. ниже)
-              5. SudoersManager.isInstalled()      — проверить sudoers для sing-box + networksetup
-              6. Process() с sudo -n               — оба режима запускаются через sudo
-              7. isRunning = true
-              8. SystemProxyHelper.enableSOCKS5(port:)
-                                                  — выставить системный SOCKS5-прокси
+ProxyManager.start(profilePath:, mode: .socks5(port:))
+  1. killOrphanedSingBox()
+  2. ensurePortFreeForSocks5(port)     — проверить, что порт свободен
+  3. AppRoutingStore.effectiveProcessNames(for: profile)
+                                       — получить список process_name (с хелперами)
+  4. ConfigTransformer.makeSocks5Config(...)
+                                       — трансформировать конфиг (см. ниже)
+  5. SudoersManager.isInstalled()
+  6. Process() с sudo -n
+  7. isRunning = true
+
+  Если список пустой (чистый SOCKS5):
+  8a. SystemProxyHelper.enableSOCKS5(port:) — выставить системный прокси macOS
+
+  Если список непустой (гибридный TUN+SOCKS5):
+  8b. DNSHelper.setDNS("172.19.0.1")        — как в TUN-режиме
 ```
 
 ### Трансформация конфига (ConfigTransformer)
 
-Оригинальный профиль sing-box рассчитан на TUN-режим — он может содержать `tun`-inbound и `fakeip` DNS. Для SOCKS5 всё это не нужно и мешает. `ConfigTransformer.makeSocks5Config()` создаёт временный JSON-файл:
+`ConfigTransformer.makeSocks5Config()` создаёт временный JSON в `/tmp/yurec-socks5-<UUID>.json`:
 
-1. **Убирает `tun`-inbound** — TUN-интерфейс не нужен
-2. **Убирает существующие `socks`-inbound** — заменяет одним чистым
-3. **Добавляет SOCKS5-inbound**:
+**Чистый SOCKS5** (список пуст):
+1. Убирает `tun`-inbound
+2. Убирает существующие `socks`-inbound, добавляет чистый на заданном порту
+3. Убирает `fakeip` DNS-серверы
+4. `route.final` не меняется
+
+**Гибридный TUN+SOCKS5** (список непустой):
+1. Оставляет `tun`-inbound как есть
+2. Убирает существующие `socks`-inbound, добавляет чистый на заданном порту
+3. Оставляет `fakeip` DNS (нужен для TUN)
+4. Добавляет два правила в начало `route.rules`:
    ```json
-   { "type": "socks", "tag": "socks-in", "listen": "127.0.0.1", "listen_port": 2080 }
+   { "inbound": ["socks-in"], "outbound": "proxy" }
+   { "process_name": ["Claude", "Claude Helper (Renderer)", ...], "outbound": "proxy" }
    ```
-4. **Убирает `fakeip` DNS-серверы** — fake-ip работает только с TUN
-5. **Инжектирует `process_name` правило** (если список приложений непустой):
-   ```json
-   {
-     "route": {
-       "find_process": true,
-       "rules": [
-         { "process_name": ["Telegram", "Discord"], "outbound": "proxy" },
-         ...остальные правила профиля...
-       ]
-     }
-   }
-   ```
-   `route.final` намеренно **не меняется** — приложения, не попавшие в список, следуют дефолтной маршрутизации профиля.
-
-Временный файл сохраняется в `/tmp/yurec-socks5-<UUID>.json` и удаляется при остановке.
-
-### Системный прокси macOS
-
-`SystemProxyHelper.enableSOCKS5(port:)` вызывает для каждого активного сетевого сервиса:
-
-```sh
-sudo -n /usr/sbin/networksetup -setsocksfirewallproxy "Wi-Fi" 127.0.0.1 2080
-sudo -n /usr/sbin/networksetup -setsocksfirewallproxystate "Wi-Fi" on
-```
-
-При остановке SOCKS5 (`stop()`, `handleProcessTermination()`, `forceCleanup()`) вызывается `SystemProxyHelper.disableSOCKS5()`:
-
-```sh
-sudo -n /usr/sbin/networksetup -setsocksfirewallproxystate "Wi-Fi" off
-```
+5. Устанавливает `route.final = "direct"` и `find_process = true`
 
 ### Остановка SOCKS5
 
@@ -185,8 +175,14 @@ sudo -n /usr/sbin/networksetup -setsocksfirewallproxystate "Wi-Fi" off
 ProxyManager.stop()
   1. SIGKILL всем дочерним sing-box процессам
   2. killProcess()
-  3. SystemProxyHelper.disableSOCKS5()  — снять системный прокси
-  4. cleanupMode()                       — удалить временный конфиг из /tmp
+
+  Чистый SOCKS5:
+  3a. SystemProxyHelper.disableSOCKS5()  — снять системный прокси
+
+  Гибридный TUN+SOCKS5:
+  3b. DNSHelper.resetDNS()               — сбросить DNS
+
+  4. cleanupMode() — удалить временный конфиг, обнулить socks5UsesTun
   5. isRunning = false
   6. startLaunchDetectionLoop()
 ```
@@ -195,63 +191,135 @@ ProxyManager.stop()
 
 ## Профили
 
-Профили — это JSON-файлы конфигурации sing-box, хранящиеся в `~/.singbox/profiles/`. Приложение наблюдает за этой директорией через **FSEvents** и автоматически обновляет список при добавлении/удалении файлов.
+Профили — это JSON-файлы конфигурации sing-box, хранящиеся в `~/.singbox/profiles/`. Приложение наблюдает за этой директорией через **FSEvents** и автоматически обновляет список.
 
 ### Что хранится в профиле
 
 Стандартный sing-box JSON с:
-- `inbounds` — входящие соединения (TUN, SOCKS5 и др.)
-- `outbounds` — исходящие (proxy, direct, block)
-- `route.rules` — правила маршрутизации трафика
+- `inbounds` — TUN, SOCKS5 и другие входящие
+- `outbounds` — proxy, direct, block
+- `route.rules` — правила маршрутизации
 - `route.final` — дефолтный outbound (обычно `"proxy"`)
 - `dns` — DNS-серверы, включая fake-ip для TUN
 
 ### Настройки профиля
 
-Каждый профиль независимо хранит:
-- **SOCKS5 Port** — порт для режима SOCKS5 (по умолчанию 2080), сохраняется в `UserDefaults`
-- **App Routing override** — флаг и собственный список приложений вместо глобального
+- **SOCKS5 Port** — порт (по умолчанию 2080)
+- **App Routing override** — собственный список приложений вместо глобального
 
 ---
 
 ## Маршрутизация по приложениям (App Routing)
 
-Позволяет в режиме SOCKS5 явно указать, какие приложения должны идти через прокси, используя механизм `process_name` в sing-box.
-
 ### Двухуровневая система
 
 ```
 GlobalEntries (UserDefaults: appRouting.global.v1)
-     │
      └── применяется ко всем профилям, у которых overridesGlobal = false
-              │
-         ProfileEntries (UserDefaults: appRouting.profile.entries.<path>)
-              │
-              └── применяется к конкретному профилю если overridesGlobal = true
+
+ProfileEntries (UserDefaults: appRouting.profile.entries.<path>)
+     └── применяется к профилю, если overridesGlobal = true
 ```
 
-**Разрешение** (`AppRoutingStore.effectiveEntries(for:)`):
-- `profile == nil` → глобальный список
-- `profile.overridesGlobal == true` → список профиля
-- иначе → глобальный список
+### Автоопределение хелпер-процессов
 
-### AppRoutingEntry
+macOS-приложения, особенно Electron-based (Claude, VS Code, ChatGPT), запускают множество дочерних процессов с именами, отличными от главного бинаря. Например:
 
-При добавлении приложения через NSOpenPanel из `AppRoutingEntry(appURL:)` считывается:
-- `displayName` — из `CFBundleDisplayName` / `CFBundleName` / имени файла
-- `processName` — basename исполняемого файла (именно это sing-box сравнивает в `process_name`)
-- `bundleIdentifier` — `CFBundleIdentifier`
-- `appPath` — путь к `.app` для иконки
+| Приложение | Главный процесс | Процессы, делающие сеть |
+|---|---|---|
+| Claude.app | `Claude` | `Claude Helper (Renderer)`, `Claude Helper (Plugin)` |
+| VS Code | `Code` | `Code Helper (Plugin)` (extension host) |
+| ChatGPT | `ChatGPT` | `ChatGPT`, `Updater`, `Downloader` (Sparkle) |
+
+При добавлении `.app`-бандла `AppRoutingEntry` рекурсивно сканирует `Contents/` и автоматически собирает имена всех вложенных `.app`, `.xpc` и `.appex` бандлов. Все они включаются в правило `process_name` в sing-box. Хранить это не нужно — вычисляется динамически из бандла при каждом запуске.
+
+### Поддержка plain-бинарей
+
+Помимо `.app`-бандлов, пикер принимает обычные исполняемые файлы. Это необходимо, например, для нативного бинаря плагина Claude Code в VS Code, который лежит вне бандла VS Code:
+
+```
+~/.vscode/extensions/anthropic.claude-code-*/resources/native-binary/claude
+```
 
 ### Как добавить приложение
 
-В настройках (General или Profiles) нажать `+` → открывается `NSOpenPanel` с `/Applications`, настроенный на выбор `.app`-пакетов как файлов (`treatsFilePackagesAsDirectories = false`).
+В настройках (General или Profiles) нажать `+` → открывается `NSOpenPanel`. Можно выбрать:
+- `.app`-бандл из `/Applications` — все хелперы подхватятся автоматически
+- Обычный бинарь (например `claude`) через `Cmd+Shift+G` для перехода по пути
+
+---
+
+## Практическая настройка
+
+### Сценарий: Claude desktop, ChatGPT и плагин Claude Code в VS Code ходят через VPN, всё остальное — напрямую
+
+Используется режим **SOCKS5** с непустым списком App Routing (гибридный TUN+SOCKS5).
+
+#### Шаг 1. Добавить Claude.app
+
+Настройки → `+` → `/Applications/Claude.app`
+
+Автоматически будут включены процессы:
+- `Claude`
+- `Claude Helper`
+- `Claude Helper (GPU)`
+- `Claude Helper (Plugin)`
+- `Claude Helper (Renderer)`
+
+#### Шаг 2. Добавить ChatGPT.app
+
+Настройки → `+` → `/Applications/ChatGPT.app`
+
+Автоматически:
+- `ChatGPT`
+- `Widgets` (виджет macOS)
+- `Updater`, `Downloader`, `Installer` (Sparkle, апдейтер тоже пойдёт через VPN)
+
+#### Шаг 3. Добавить VS Code
+
+Настройки → `+` → `/Applications/Visual Studio Code.app`
+
+Автоматически:
+- `Code`
+- `Code Helper`
+- `Code Helper (GPU)`
+- `Code Helper (Plugin)` ← именно здесь работают расширения
+- `Code Helper (Renderer)`
+
+> Это покроет трафик самого редактора и встроенных расширений. Но плагин **Claude Code** запускает отдельный нативный бинарь вне бандла VS Code — его нужно добавить отдельно.
+
+#### Шаг 4. Добавить нативный бинарь Claude Code
+
+Настройки → `+` → нажать `Cmd+Shift+G` в открывшейся панели → вставить путь:
+
+```
+~/.vscode/extensions
+```
+
+Найти папку `anthropic.claude-code-<версия>-darwin-arm64/resources/native-binary/` и выбрать файл `claude`.
+
+Процесс: `claude`
+
+> Путь меняется при обновлении плагина (меняется версия в имени папки). Если плагин перестанет работать через VPN после обновления — повторите этот шаг.
+
+#### Шаг 5. Подключиться в режиме SOCKS5
+
+Клик по иконке в строке меню → выбрать профиль → **SOCKS5**.
+
+После подключения:
+- Claude desktop, ChatGPT, VS Code и плагин Claude Code → через VPN
+- Браузер, почта и всё остальное → напрямую
+- Telegram с настроенным прокси (`127.0.0.1:2080`) → через VPN (через SOCKS5 inbound)
+
+#### Telegram с явным прокси
+
+Если Telegram настроен на использование прокси `127.0.0.1:2080` — он будет работать через VPN автоматически. Добавлять Telegram в список App Routing не нужно: трафик через SOCKS5 inbound всегда идёт на `proxy` outbound согласно первому правилу маршрутизации.
 
 ---
 
 ## Sudoers и права
 
-И TUN, и SOCKS5 запускаются через `sudo -n` (без пароля). Правило устанавливается **один раз** — при первом подключении показывается стандартный диалог macOS `administrator privileges`.
+И TUN, и SOCKS5 запускаются через `sudo -n` (без пароля). Правило устанавливается **один раз** — при первом подключении показывается стандартный диалог macOS.
 
 ### Правило (`/etc/sudoers.d/yurec`)
 
@@ -260,12 +328,7 @@ GlobalEntries (UserDefaults: appRouting.global.v1)
 %admin ALL=(root) NOPASSWD: /usr/local/bin/sing-box, /opt/homebrew/bin/sing-box, /bin/kill, /usr/sbin/networksetup
 ```
 
-Содержит:
-- пути к sing-box (стандартные + пользовательский, если задан)
-- `/bin/kill` — для SIGKILL осиротевших процессов
-- `/usr/sbin/networksetup` — для DNS и системного прокси
-
-Правило проверяется через `sudo -n -l <path>` перед каждым запуском. Если путь к бинарнику изменился (например, обновился Homebrew) — правило переустанавливается автоматически.
+Правило проверяется через `sudo -n -l <path>` перед каждым запуском. Если путь к бинарнику изменился — правило переустанавливается автоматически.
 
 ---
 
@@ -276,25 +339,19 @@ GlobalEntries (UserDefaults: appRouting.global.v1)
 | **Launch at Login** | `SMAppService.mainApp` (ServiceManagement.framework) | системный реестр launchd |
 | **Auto-connect on Launch** | проверяется в `AppDelegate.applicationDidFinishLaunching` | `UserDefaults: autoConnectOnLaunch` |
 
-При авто-подключении используется активный профиль и TUN-режим (или последний использованный — зависит от реализации `AppDelegate`).
-
 ---
 
 ## Обнаружение внешних процессов
 
-Если sing-box был запущен не через YurecClient (вручную в терминале, другим приложением), клиент его всё равно подхватит.
-
-### Механизм
+Если sing-box был запущен не через YurecClient, клиент его всё равно подхватит.
 
 При запуске и после остановки `ProxyManager` запускает `startLaunchDetectionLoop()` — фоновый поток, который каждые 2 секунды ищет процесс `sing-box` через `sysctl(KERN_PROC_ALL)`. При обнаружении:
 
-1. Читает аргументы процесса через `sysctl(KERN_PROCARGS2)` — ищет флаг `run` и путь к конфигу (`-c <path>`)
-2. Определяет активный профиль по пути к конфигу
-3. Вызывает `adoptProcess(pid:profilePath:)` — устанавливает `isRunning = true` и начинает слежение
+1. Читает аргументы через `sysctl(KERN_PROCARGS2)` — ищет флаг `run` и путь к конфигу (`-c <path>`)
+2. Определяет активный профиль по пути
+3. Вызывает `adoptProcess(pid:profilePath:)` — устанавливает `isRunning = true`
 
-### Слежение за усыновлённым процессом
-
-Для процессов без `terminationHandler` (нет объекта `Process`) используется **kqueue** (`EVFILT_PROC / NOTE_EXIT`). Это позволяет эффективно ждать завершения без постоянного опроса. Если kqueue недоступен — fallback на polling раз в 2 секунды.
+Для слежения за усыновлённым процессом используется **kqueue** (`EVFILT_PROC / NOTE_EXIT`). Fallback — polling раз в 2 секунды.
 
 ---
 
@@ -302,31 +359,21 @@ GlobalEntries (UserDefaults: appRouting.global.v1)
 
 Лог-файл: `~/Library/Logs/YurecClient/sing-box.log`
 
-Stdout и stderr sing-box перенаправляются в этот файл. Каждый запуск добавляет разделитель:
+Stdout и stderr sing-box перенаправляются в этот файл через `LogForwarder`. Каждый запуск добавляет разделитель:
 
 ```
---- YurecClient: starting TUN (Full VPN) @ 2025-01-15 12:00:00 +0000 ---
+--- YurecClient: starting SOCKS5 (port 2080) @ 2025-01-15 12:00:00 +0000 ---
 ```
 
-Открыть лог можно через меню: **Open Logs** — откроет Finder, выделив файл.
+Открыть: меню → **Open Logs**.
 
-### Управление размером лога
+### Управление размером
 
-В настройках (General → Logs) доступно:
+В настройках (General → Logs):
 
-- **Current size** — текущий размер файла в B / KB / MB
-- **Clear Now** — немедленно очищает файл: обнуляет его и сбрасывает позицию записи в начало, работает в том числе пока sing-box запущен
-- **Limit log file size** — включает автоматическое ограничение размера
-- **Max size** — порог в мегабайтах (по умолчанию 10 MB). Проверяется как при старте, так и в реальном времени во время работы sing-box
-
-### LogForwarder
-
-Вывод sing-box не перенаправляется напрямую в файл — вместо этого stdout/stderr подключены к `Pipe`, а `LogForwarder` читает данные из обоих pipe'ов через `readabilityHandler` на фоновом GCD-потоке и сам пишет в лог-файл.
-
-Это даёт полный контроль над записью:
-- Когда накопленный объём превышает лимит → `fileHandle.truncateFile(atOffset: 0)` + `seek(toFileOffset: 0)` → файл обнуляется, запись продолжается с начала
-- `Clear Now` вызывает тот же `rotate()` через форвардер — никакого удаления файла не нужно, sing-box продолжает работать без прерываний
-- Файл **никогда не превышает** заданный лимит независимо от длительности сессии
+- **Current size** — текущий размер файла
+- **Clear Now** — немедленно обнуляет файл (работает и во время активной сессии)
+- **Limit log file size** + **Max size** — автоматическое ограничение в МБ. При превышении лимита файл обнуляется и запись продолжается с начала — файл никогда не превышает лимит.
 
 ---
 
@@ -340,12 +387,12 @@ YurecClient/
 │   ├── ProxyManager.swift           — ядро: запуск, остановка, process lifecycle
 │   ├── ProfileManager.swift         — CRUD профилей, FSEvents, активный профиль
 │   ├── ConfigTransformer.swift      — трансформация конфига для SOCKS5
-│   ├── AppRoutingEntry.swift        — модель приложения в списке маршрутизации
+│   ├── AppRoutingEntry.swift        — модель приложения, авто-сбор хелпер-процессов
 │   ├── AppRoutingStore.swift        — двухуровневое хранилище глобал/профиль
 │   ├── SudoersManager.swift         — установка /etc/sudoers.d/yurec
 │   └── LaunchAtLoginManager.swift   — SMAppService обёртка
 ├── Helpers/
-│   ├── DNSHelper.swift              — networksetup DNS для TUN
+│   ├── DNSHelper.swift              — networksetup DNS
 │   └── SystemProxyHelper.swift      — networksetup SOCKS5 proxy
 └── UI/
     ├── StatusMenuController.swift   — NSStatusItem, меню, анимации иконки

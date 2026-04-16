@@ -16,6 +16,10 @@ class ProxyManager: ObservableObject {
     private var binaryPath: String = ""
     private var tempConfigURL: URL?   // temp file for SOCKS5 transformed config
     private var logForwarder: LogForwarder?
+    /// True when the current SOCKS5 session uses the TUN+SOCKS hybrid mode
+    /// (i.e. at least one app is selected for routing). Used to decide which
+    /// network state to restore on stop.
+    private var socks5UsesTun: Bool = false
 
     private init() {
         print("[YurecClient] ProxyManager.init: start")
@@ -102,6 +106,7 @@ class ProxyManager: ObservableObject {
             }
             tempConfigURL = tmpURL
             configPath = tmpURL.path
+            socks5UsesTun = !routedNames.isEmpty
         }
 
         // Both modes require root. Also ensure networksetup is covered so the
@@ -188,14 +193,18 @@ class ProxyManager: ObservableObject {
         }
 
         // Apply mode-specific system networking:
-        //   TUN  → override DNS so sing-box handles resolution via its fake-ip stack.
-        //   SOCKS5 → set macOS system proxy so all apps automatically route through
-        //            the local sing-box inbound without manual per-app configuration.
+        //   TUN              → override DNS for fake-ip resolution.
+        //   SOCKS5 + TUN     → same DNS override (TUN is active, apps selected).
+        //   SOCKS5 plain     → set macOS system proxy; no DNS change needed.
         switch mode {
         case .tun:
             DNSHelper.setDNS("172.19.0.1")
         case .socks5(let port):
-            SystemProxyHelper.enableSOCKS5(port: port)
+            if socks5UsesTun {
+                DNSHelper.setDNS("172.19.0.1")
+            } else {
+                SystemProxyHelper.enableSOCKS5(port: port)
+            }
         }
     }
 
@@ -210,8 +219,14 @@ class ProxyManager: ObservableObject {
             forceKillPIDs(sbPids, label: "stop")
         }
         killProcess()
-        if currentMode == .tun { DNSHelper.resetDNS() }
-        if case .socks5 = currentMode { SystemProxyHelper.disableSOCKS5() }
+        switch currentMode {
+        case .tun:
+            DNSHelper.resetDNS()
+        case .socks5:
+            if socks5UsesTun { DNSHelper.resetDNS() } else { SystemProxyHelper.disableSOCKS5() }
+        case nil:
+            break
+        }
         cleanupMode()
         isRunning = false
         // Start watching for sing-box to appear again (user may start it externally).
@@ -229,6 +244,7 @@ class ProxyManager: ObservableObject {
         currentMode = nil
         runningProcess = nil
         runningPID = nil
+        socks5UsesTun = false
     }
 
     private func killProcess() {
@@ -398,8 +414,14 @@ class ProxyManager: ObservableObject {
         // This prevents the terminationHandler from clobbering state when
         // stop() is immediately followed by start() for mode-switching.
         guard isRunning else { return }
-        if currentMode == .tun { DNSHelper.resetDNS() }
-        if case .socks5 = currentMode { SystemProxyHelper.disableSOCKS5() }
+        switch currentMode {
+        case .tun:
+            DNSHelper.resetDNS()
+        case .socks5:
+            if socks5UsesTun { DNSHelper.resetDNS() } else { SystemProxyHelper.disableSOCKS5() }
+        case nil:
+            break
+        }
         cleanupMode()
         isRunning = false
         startLaunchDetectionLoop()
@@ -666,8 +688,14 @@ class ProxyManager: ObservableObject {
                 sudoKill(pid: pid)
             }
         }
-        if currentMode == .tun { DNSHelper.resetDNS() }
-        if case .socks5 = currentMode { SystemProxyHelper.disableSOCKS5() }
+        switch currentMode {
+        case .tun:
+            DNSHelper.resetDNS()
+        case .socks5:
+            if socks5UsesTun { DNSHelper.resetDNS() } else { SystemProxyHelper.disableSOCKS5() }
+        case nil:
+            break
+        }
         if let url = tempConfigURL { try? FileManager.default.removeItem(at: url) }
         runningPID = nil
         runningProcess = nil

@@ -67,8 +67,15 @@ final class AppRoutingStore: ObservableObject {
     }
 
     /// Convenience: `process_name` strings ready for injection into the sing-box config.
+    ///
+    /// Includes both the main executable name and any helper process names detected in
+    /// the app bundle (e.g. `Claude Helper (Renderer)`, `Code Helper (Plugin)`).
+    /// Duplicates across entries are removed while preserving order.
     func effectiveProcessNames(for profile: Profile?) -> [String] {
-        effectiveEntries(for: profile).map(\.processName)
+        var seen = Set<String>()
+        return effectiveEntries(for: profile)
+            .flatMap(\.allProcessNames)
+            .filter { seen.insert($0).inserted }
     }
 
     // MARK: - Persistence
