@@ -1,0 +1,451 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		239B1D72CADD4943AB6E0162 /* YurecClientApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 332DD56DA3744BEF87EA1AE5 /* YurecClientApp.swift */; };
+		C4225EEA7020457BA7DE0C5D /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B75D95D4682480DAFEC5F52 /* AppDelegate.swift */; };
+		98CBC126DCDB456F9E2E9EF3 /* ProxyManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0D8CEAE29DC4151A1663E8E /* ProxyManager.swift */; };
+		E666872F94DF4A9D8942E8BC /* ProfileManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54CAB959812E41B2A0FE2CB8 /* ProfileManager.swift */; };
+		1031B39DB1DC4F919B49D922 /* LaunchAtLoginManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2754E362DC0A479EBDA9F4C1 /* LaunchAtLoginManager.swift */; };
+		F0E413CBEE6F4C5986B41A6C /* StatusMenuController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 59B258D39FD142ABBA8BF27E /* StatusMenuController.swift */; };
+		F43ACCC1F60B4143B9595EBA /* SettingsWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4E33BF5F7894FC58BE97BF8 /* SettingsWindowController.swift */; };
+		869B30798B4C472795A5309B /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A6C464209FB34D228F7087FE /* SettingsView.swift */; };
+		04DF46386D834673A27CBED0 /* ProfilesTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2AAA311CC9D24437AC94F0DF /* ProfilesTabView.swift */; };
+		E20F7473D35D4C29818B9BA5 /* GeneralTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E967ECDD84DF48B1AA9E721C /* GeneralTabView.swift */; };
+		452AA4D6FD2F4546B67F7003 /* DNSHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8151A5D7DA1147C899B42BCA /* DNSHelper.swift */; };
+		BB0001000000000000000001 /* SudoersManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0002000000000000000001 /* SudoersManager.swift */; };
+		CC0001000000000000000001 /* ConnectionMode.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC0002000000000000000001 /* ConnectionMode.swift */; };
+		CC0001000000000000000002 /* ConfigTransformer.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC0002000000000000000002 /* ConfigTransformer.swift */; };
+		DD0001000000000000000001 /* StatusBarIconState.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD0002000000000000000001 /* StatusBarIconState.swift */; };
+		DD0001000000000000000002 /* StatusBarIconProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD0002000000000000000002 /* StatusBarIconProvider.swift */; };
+		EE0001000000000000000001 /* AppRoutingEntry.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE0002000000000000000001 /* AppRoutingEntry.swift */; };
+		EE0001000000000000000002 /* AppRoutingStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE0002000000000000000002 /* AppRoutingStore.swift */; };
+		EE0001000000000000000003 /* AppRoutingListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE0002000000000000000003 /* AppRoutingListView.swift */; };
+		FF0001000000000000000001 /* SystemProxyHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF0002000000000000000001 /* SystemProxyHelper.swift */; };
+		AA0001000000000000000001 /* SystemConfiguration.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AA0002000000000000000001 /* SystemConfiguration.framework */; };
+		AA0001000000000000000002 /* ServiceManagement.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AA0002000000000000000002 /* ServiceManagement.framework */; };
+		AA0001000000000000000003 /* Security.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AA0002000000000000000003 /* Security.framework */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		332DD56DA3744BEF87EA1AE5 /* YurecClientApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = YurecClientApp.swift; sourceTree = "<group>"; };
+		0B75D95D4682480DAFEC5F52 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		01C2AC0CB0814B128DAB356C /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		B0D8CEAE29DC4151A1663E8E /* ProxyManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProxyManager.swift; sourceTree = "<group>"; };
+		54CAB959812E41B2A0FE2CB8 /* ProfileManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileManager.swift; sourceTree = "<group>"; };
+		2754E362DC0A479EBDA9F4C1 /* LaunchAtLoginManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchAtLoginManager.swift; sourceTree = "<group>"; };
+		59B258D39FD142ABBA8BF27E /* StatusMenuController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusMenuController.swift; sourceTree = "<group>"; };
+		F4E33BF5F7894FC58BE97BF8 /* SettingsWindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsWindowController.swift; sourceTree = "<group>"; };
+		A6C464209FB34D228F7087FE /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		2AAA311CC9D24437AC94F0DF /* ProfilesTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfilesTabView.swift; sourceTree = "<group>"; };
+		E967ECDD84DF48B1AA9E721C /* GeneralTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeneralTabView.swift; sourceTree = "<group>"; };
+		8151A5D7DA1147C899B42BCA /* DNSHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DNSHelper.swift; sourceTree = "<group>"; };
+		BB0002000000000000000001 /* SudoersManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SudoersManager.swift; sourceTree = "<group>"; };
+		CC0002000000000000000001 /* ConnectionMode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionMode.swift; sourceTree = "<group>"; };
+		CC0002000000000000000002 /* ConfigTransformer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConfigTransformer.swift; sourceTree = "<group>"; };
+		DD0002000000000000000001 /* StatusBarIconState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusBarIconState.swift; sourceTree = "<group>"; };
+		DD0002000000000000000002 /* StatusBarIconProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusBarIconProvider.swift; sourceTree = "<group>"; };
+		EE0002000000000000000001 /* AppRoutingEntry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppRoutingEntry.swift; sourceTree = "<group>"; };
+		EE0002000000000000000002 /* AppRoutingStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppRoutingStore.swift; sourceTree = "<group>"; };
+		EE0002000000000000000003 /* AppRoutingListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppRoutingListView.swift; sourceTree = "<group>"; };
+		FF0002000000000000000001 /* SystemProxyHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemProxyHelper.swift; sourceTree = "<group>"; };
+		6321F2F75A3744469F6183E0 /* YurecClient.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = YurecClient.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		AA0002000000000000000001 /* SystemConfiguration.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SystemConfiguration.framework; path = System/Library/Frameworks/SystemConfiguration.framework; sourceTree = SDKROOT; };
+		AA0002000000000000000002 /* ServiceManagement.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ServiceManagement.framework; path = System/Library/Frameworks/ServiceManagement.framework; sourceTree = SDKROOT; };
+		AA0002000000000000000003 /* Security.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Security.framework; path = System/Library/Frameworks/Security.framework; sourceTree = SDKROOT; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		A66B650DEEB14C7980B6D2FC /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				AA0001000000000000000001 /* SystemConfiguration.framework in Frameworks */,
+				AA0001000000000000000002 /* ServiceManagement.framework in Frameworks */,
+				AA0001000000000000000003 /* Security.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		4E683D6DC95A42D6BCDEE22C /* YurecClient */ = {
+			isa = PBXGroup;
+			children = (
+				4781BEC36048412CBEFB28FD /* App */,
+				0382254E566F42F78508E28B /* Managers */,
+				10EFEE895F794B3C81182844 /* UI */,
+				457E3556CCD0435BB8232425 /* Helpers */,
+				6B71C8CD00AF4264BF602598 /* Products */,
+				AA0003000000000000000001 /* Frameworks */,
+			);
+			path = YurecClient;
+			sourceTree = "<group>";
+		};
+		6B71C8CD00AF4264BF602598 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				6321F2F75A3744469F6183E0 /* YurecClient.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		AA0003000000000000000001 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				AA0002000000000000000001 /* SystemConfiguration.framework */,
+				AA0002000000000000000002 /* ServiceManagement.framework */,
+				AA0002000000000000000003 /* Security.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		4781BEC36048412CBEFB28FD /* App */ = {
+			isa = PBXGroup;
+			children = (
+				332DD56DA3744BEF87EA1AE5 /* YurecClientApp.swift */,
+				0B75D95D4682480DAFEC5F52 /* AppDelegate.swift */,
+				01C2AC0CB0814B128DAB356C /* Info.plist */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		0382254E566F42F78508E28B /* Managers */ = {
+			isa = PBXGroup;
+			children = (
+				B0D8CEAE29DC4151A1663E8E /* ProxyManager.swift */,
+				54CAB959812E41B2A0FE2CB8 /* ProfileManager.swift */,
+				2754E362DC0A479EBDA9F4C1 /* LaunchAtLoginManager.swift */,
+				BB0002000000000000000001 /* SudoersManager.swift */,
+				CC0002000000000000000001 /* ConnectionMode.swift */,
+				CC0002000000000000000002 /* ConfigTransformer.swift */,
+				EE0002000000000000000001 /* AppRoutingEntry.swift */,
+				EE0002000000000000000002 /* AppRoutingStore.swift */,
+			);
+			path = Managers;
+			sourceTree = "<group>";
+		};
+		10EFEE895F794B3C81182844 /* UI */ = {
+			isa = PBXGroup;
+			children = (
+				59B258D39FD142ABBA8BF27E /* StatusMenuController.swift */,
+				DD0002000000000000000001 /* StatusBarIconState.swift */,
+				DD0002000000000000000002 /* StatusBarIconProvider.swift */,
+				84A3FA706076443980A4E2E3 /* Settings */,
+			);
+			path = UI;
+			sourceTree = "<group>";
+		};
+		84A3FA706076443980A4E2E3 /* Settings */ = {
+			isa = PBXGroup;
+			children = (
+				F4E33BF5F7894FC58BE97BF8 /* SettingsWindowController.swift */,
+				A6C464209FB34D228F7087FE /* SettingsView.swift */,
+				2AAA311CC9D24437AC94F0DF /* ProfilesTabView.swift */,
+				E967ECDD84DF48B1AA9E721C /* GeneralTabView.swift */,
+				EE0002000000000000000003 /* AppRoutingListView.swift */,
+			);
+			path = Settings;
+			sourceTree = "<group>";
+		};
+		457E3556CCD0435BB8232425 /* Helpers */ = {
+			isa = PBXGroup;
+			children = (
+				8151A5D7DA1147C899B42BCA /* DNSHelper.swift */,
+				FF0002000000000000000001 /* SystemProxyHelper.swift */,
+			);
+			path = Helpers;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		33B787D096F84A8B8FCE1896 /* YurecClient */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = B81BFC0530A9479CA0A5F5BB /* Build configuration list for PBXNativeTarget "YurecClient" */;
+			buildPhases = (
+				DD67B307B40B4356AFAF1ADA /* Sources */,
+				A66B650DEEB14C7980B6D2FC /* Frameworks */,
+				936F930FCDA2440684427840 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = YurecClient;
+			productName = YurecClient;
+			productReference = 6321F2F75A3744469F6183E0 /* YurecClient.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		DA1906EBBC2A4FD4AE70623E /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1500;
+				LastUpgradeCheck = 1500;
+				TargetAttributes = {
+					33B787D096F84A8B8FCE1896 = {
+						CreatedOnToolsVersion = 15.0;
+					};
+				};
+			};
+			buildConfigurationList = F2A0C377F9524BD5827829DC /* Build configuration list for PBXProject "YurecClient" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = 4E683D6DC95A42D6BCDEE22C;
+			productRefGroup = 6B71C8CD00AF4264BF602598 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				33B787D096F84A8B8FCE1896 /* YurecClient */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		936F930FCDA2440684427840 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		DD67B307B40B4356AFAF1ADA /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				239B1D72CADD4943AB6E0162 /* YurecClientApp.swift in Sources */,
+				C4225EEA7020457BA7DE0C5D /* AppDelegate.swift in Sources */,
+				98CBC126DCDB456F9E2E9EF3 /* ProxyManager.swift in Sources */,
+				E666872F94DF4A9D8942E8BC /* ProfileManager.swift in Sources */,
+				1031B39DB1DC4F919B49D922 /* LaunchAtLoginManager.swift in Sources */,
+				F0E413CBEE6F4C5986B41A6C /* StatusMenuController.swift in Sources */,
+				F43ACCC1F60B4143B9595EBA /* SettingsWindowController.swift in Sources */,
+				869B30798B4C472795A5309B /* SettingsView.swift in Sources */,
+				04DF46386D834673A27CBED0 /* ProfilesTabView.swift in Sources */,
+				E20F7473D35D4C29818B9BA5 /* GeneralTabView.swift in Sources */,
+				452AA4D6FD2F4546B67F7003 /* DNSHelper.swift in Sources */,
+				BB0001000000000000000001 /* SudoersManager.swift in Sources */,
+				CC0001000000000000000001 /* ConnectionMode.swift in Sources */,
+				CC0001000000000000000002 /* ConfigTransformer.swift in Sources */,
+				DD0001000000000000000001 /* StatusBarIconState.swift in Sources */,
+				DD0001000000000000000002 /* StatusBarIconProvider.swift in Sources */,
+				EE0001000000000000000001 /* AppRoutingEntry.swift in Sources */,
+				EE0001000000000000000002 /* AppRoutingStore.swift in Sources */,
+				EE0001000000000000000003 /* AppRoutingListView.swift in Sources */,
+				FF0001000000000000000001 /* SystemProxyHelper.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		2B5824F02C4A4A3BA71F0C73 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_CYCLE = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 13.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		888BBA250F9B41C88F62B35C /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_CYCLE = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 13.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = macosx;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+			};
+			name = Release;
+		};
+		097CE5972DAC475EB4142080 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = "YurecClient/YurecClient.entitlements";
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				ENABLE_HARDENED_RUNTIME = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = YurecClient/App/Info.plist;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.yurecclient.app;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				MACOSX_DEPLOYMENT_TARGET = 13.0;
+			};
+			name = Debug;
+		};
+		2D2E0AC468FD4B2AA5C837CB /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = "YurecClient/YurecClient.entitlements";
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				ENABLE_HARDENED_RUNTIME = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = YurecClient/App/Info.plist;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.yurecclient.app;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				MACOSX_DEPLOYMENT_TARGET = 13.0;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		F2A0C377F9524BD5827829DC /* Build configuration list for PBXProject "YurecClient" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				2B5824F02C4A4A3BA71F0C73 /* Debug */,
+				888BBA250F9B41C88F62B35C /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		B81BFC0530A9479CA0A5F5BB /* Build configuration list for PBXNativeTarget "YurecClient" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				097CE5972DAC475EB4142080 /* Debug */,
+				2D2E0AC468FD4B2AA5C837CB /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+
+	};
+	rootObject = DA1906EBBC2A4FD4AE70623E /* Project object */;
+}
