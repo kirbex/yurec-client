@@ -7,6 +7,14 @@ struct GeneralTabView: View {
     @State private var autoConnect: Bool = UserDefaults.standard.bool(forKey: "autoConnectOnLaunch")
     @State private var binaryPath: String = UserDefaults.standard.string(forKey: "yurecBinaryPath") ?? ""
 
+    // Log settings
+    @State private var logLimitEnabled: Bool = UserDefaults.standard.bool(forKey: "logSizeLimitEnabled")
+    @State private var logLimitMBText: String = {
+        let v = UserDefaults.standard.integer(forKey: "logSizeLimitMB")
+        return v > 0 ? "\(v)" : "10"
+    }()
+    @State private var logFileSize: Int = 0
+
     var body: some View {
         Form {
             Section {
@@ -54,6 +62,41 @@ struct GeneralTabView: View {
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }
+
+            Section("Logs") {
+                HStack {
+                    Text("Current size:")
+                    Spacer()
+                    Text(logFileSizeString)
+                        .foregroundStyle(.secondary)
+                    Button("Clear Now") { clearLog() }
+                        .controlSize(.small)
+                }
+
+                Toggle("Limit log file size", isOn: $logLimitEnabled)
+                    .onChange(of: logLimitEnabled) { value in
+                        UserDefaults.standard.set(value, forKey: "logSizeLimitEnabled")
+                    }
+
+                if logLimitEnabled {
+                    LabeledContent("Max size") {
+                        HStack(spacing: 6) {
+                            TextField("", text: $logLimitMBText)
+                                .textFieldStyle(.roundedBorder)
+                                .frame(width: 64)
+                                .multilineTextAlignment(.trailing)
+                                .onSubmit { saveLogLimit() }
+                                .onChange(of: logLimitMBText) { _ in saveLogLimit() }
+                            Text("MB")
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    Text("The log file is cleared at the start of the next session when the limit is exceeded.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .onAppear { refreshLogFileSize() }
         }
         .formStyle(.grouped)
         .padding(8)
@@ -88,5 +131,29 @@ struct GeneralTabView: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }
+    }
+
+    // MARK: - Log helpers
+
+    private var logFileSizeString: String {
+        if logFileSize <= 0 { return "empty" }
+        if logFileSize < 1024 { return "\(logFileSize) B" }
+        if logFileSize < 1024 * 1024 { return String(format: "%.1f KB", Double(logFileSize) / 1024) }
+        return String(format: "%.1f MB", Double(logFileSize) / 1024 / 1024)
+    }
+
+    private func refreshLogFileSize() {
+        let path = ProxyManager.singBoxLogURL.path
+        logFileSize = (try? FileManager.default.attributesOfItem(atPath: path))?[.size] as? Int ?? 0
+    }
+
+    private func saveLogLimit() {
+        guard let mb = Int(logLimitMBText.trimmingCharacters(in: .whitespaces)), mb > 0 else { return }
+        UserDefaults.standard.set(mb, forKey: "logSizeLimitMB")
+    }
+
+    private func clearLog() {
+        ProxyManager.shared.clearLog()
+        refreshLogFileSize()
     }
 }

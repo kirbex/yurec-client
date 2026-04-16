@@ -310,6 +310,17 @@ sing-box stdout and stderr are both redirected to this file. Each session start 
 
 The log can be opened from the menu: **Open Logs** — opens Finder with the file selected.
 
+### Log size management
+
+In Settings (General → Logs):
+
+- **Current size** — current file size in B / KB / MB
+- **Clear Now** — clears the file immediately. Works even while sing-box is running: the file is deleted and a fresh empty one is created at the same path. The running process continues writing to the old inode via its open file descriptor — the new file stays clean until the next session starts
+- **Limit log file size** — enables automatic clearing when the limit is exceeded
+- **Max size** — threshold in megabytes (default 10 MB). Checked at the beginning of every new sing-box session: if the file exceeds the limit it is cleared before start
+
+Technical note: clearing uses `removeItem` + `createFile` rather than `truncateFile`. With `truncateFile`, a running sing-box immediately writes at its old offset and restores the file size. `removeItem` creates a new inode — the process continues writing to the unlinked file, which is no longer reachable by path on disk.
+
 ---
 
 ## Project Structure

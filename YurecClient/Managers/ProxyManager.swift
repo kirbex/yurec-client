@@ -117,13 +117,13 @@ class ProxyManager: ObservableObject {
         }
 
         // Open (or create) the log file in append mode.
-        // We do NOT truncate — previous session errors must survive so they can be
-        // inspected even if a subsequent mode switch overwrites the file handle.
-        // A session separator line marks where each new run begins.
+        // If the user has configured a size limit, truncate before opening so the
+        // new session starts from a clean file rather than appending to a huge one.
         let logURL = ProxyManager.singBoxLogURL
         if !FileManager.default.fileExists(atPath: logURL.path) {
             FileManager.default.createFile(atPath: logURL.path, contents: nil)
         }
+        truncateLogIfNeeded(at: logURL)
         guard let outHandle = FileHandle(forWritingAtPath: logURL.path) else {
             print("[YurecClient] start: cannot open log file at \(logURL.path)")
             return
@@ -666,6 +666,39 @@ class ProxyManager: ObservableObject {
         if let url = tempConfigURL { try? FileManager.default.removeItem(at: url) }
         runningPID = nil
         runningProcess = nil
+    }
+
+    // MARK: - Log management
+
+    /// Truncates the log file to zero bytes if a size limit is configured and exceeded.
+    /// Called at the start of every session so the new session always has room.
+    private func truncateLogIfNeeded(at url: URL) {
+        guard UserDefaults.standard.bool(forKey: "logSizeLimitEnabled") else { return }
+        let limitMB = UserDefaults.standard.integer(forKey: "logSizeLimitMB")
+        guard limitMB > 0 else { return }
+        let limitBytes = limitMB * 1024 * 1024
+        guard
+            let attrs = try? FileManager.default.attributesOfItem(atPath: url.path),
+            let fileSize = attrs[.size] as? Int,
+            fileSize > limitBytes
+        else { return }
+        try? FileManager.default.removeItem(at: url)
+        FileManager.default.createFile(atPath: url.path, contents: nil)
+        print("[YurecClient] log truncated: was \(fileSize / 1024) KB, limit \(limitMB) MB")
+    }
+
+    /// Clears the log file immediately (called from Settings).
+    ///
+    /// Uses delete + recreate rather than truncate so the visible file on disk
+    /// becomes empty even while sing-box is running. The running process holds
+    /// an fd to the old (now unlinked) inode and keeps writing there harmlessly;
+    /// the new file at the same path starts fresh and stays empty until the next
+    /// sing-box session appends its separator.
+    func clearLog() {
+        let url = ProxyManager.singBoxLogURL
+        try? FileManager.default.removeItem(at: url)
+        FileManager.default.createFile(atPath: url.path, contents: nil)
+        print("[YurecClient] log cleared manually")
     }
 
     // MARK: - Helpers
