@@ -57,11 +57,27 @@ enum ConfigTransformer {
             // Plain SOCKS5: strip fakeip (TUN-only feature).
             if var dns = config["dns"] as? [String: Any] {
                 if var servers = dns["servers"] as? [[String: Any]] {
+                    // Collect tags of fakeip servers before removing them so we can
+                    // also remove any DNS rules that reference them. Without this, rules
+                    // like {"query_type":["A","AAAA"],"server":"fakeip"} survive the
+                    // cleanup and point at a non-existent server, breaking A/AAAA
+                    // resolution — the root cause of sites like mail.google.com or
+                    // Yandex failing in SOCKS5 mode.
+                    let fakeipTags = Set(servers.compactMap { s -> String? in
+                        guard (s["type"] as? String) == "fakeip" else { return nil }
+                        return s["tag"] as? String
+                    })
+
                     servers.removeAll { ($0["type"] as? String) == "fakeip" }
                     if servers.isEmpty {
                         servers = [["tag": "remote", "address": "tls://1.1.1.1", "detour": "proxy"]]
                     }
                     dns["servers"] = servers
+
+                    if !fakeipTags.isEmpty, var rules = dns["rules"] as? [[String: Any]] {
+                        rules.removeAll { ($0["server"] as? String).map { fakeipTags.contains($0) } ?? false }
+                        dns["rules"] = rules
+                    }
                 }
                 dns.removeValue(forKey: "fakeip")
                 config["dns"] = dns
@@ -77,10 +93,23 @@ enum ConfigTransformer {
             let proxyOutbound = route["final"] as? String ?? "proxy"
             var rules = (route["rules"] as? [[String: Any]]) ?? []
 
-            // Rule 1 — selected apps (including their helper processes) via TUN → proxy.
+            // Rule 2 — selected apps (including their helper processes) via TUN → proxy.
             rules.insert([
                 "process_name": routedProcessNames,
                 "outbound":     proxyOutbound
+            ], at: 0)
+
+            // Rule 1 — block QUIC (UDP port 443) for selected apps.
+            // Chrome and Yandex Browser aggressively try QUIC/HTTP3 over UDP when they
+            // don't detect a system proxy. TUN captures this UDP traffic but most proxies
+            // can't relay UDP reliably, causing sites like mail.google.com or Yandex to
+            // fail. Dropping UDP 443 here makes the browser fall back to TCP/TLS
+            // immediately, which then flows normally via TUN → proxy (Rule 2 above).
+            rules.insert([
+                "process_name": routedProcessNames,
+                "network":      "udp",
+                "port":         [443],
+                "outbound":     "block"
             ], at: 0)
 
             // Rule 0 — traffic arriving on the SOCKS5 inbound always goes to proxy.
@@ -97,6 +126,15 @@ enum ConfigTransformer {
             route["find_process"] = true
             route["final"]        = "direct"  // unlisted apps bypass VPN
             config["route"] = route
+
+            // Ensure "block" outbound exists — required for the QUIC-blocking rule above.
+            // Most profiles already include it for ad-blocking; add it only when missing.
+            if var outbounds = config["outbounds"] as? [[String: Any]] {
+                if !outbounds.contains(where: { ($0["tag"] as? String) == "block" }) {
+                    outbounds.append(["type": "block", "tag": "block"])
+                    config["outbounds"] = outbounds
+                }
+            }
         }
         // Plain SOCKS5: routing unchanged (all traffic through proxy by default).
 

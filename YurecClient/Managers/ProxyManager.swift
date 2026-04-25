@@ -193,9 +193,9 @@ class ProxyManager: ObservableObject {
         }
 
         // Apply mode-specific system networking:
-        //   TUN              → override DNS for fake-ip resolution.
-        //   SOCKS5 + TUN     → same DNS override (TUN is active, apps selected).
-        //   SOCKS5 plain     → set macOS system proxy; no DNS change needed.
+        //   TUN          → override DNS for fake-ip resolution.
+        //   SOCKS5+TUN   → same DNS override (TUN is active, apps selected).
+        //   SOCKS5 plain → set macOS system proxy; no DNS change needed.
         switch mode {
         case .tun:
             DNSHelper.setDNS("172.19.0.1")
