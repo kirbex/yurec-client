@@ -58,5 +58,8 @@ Carthage/Build/
 build-check/
 build-release/
 
+# Release artifacts
+*.dmg
+
 # Claude Code
 .claude/
