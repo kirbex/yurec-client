@@ -2,10 +2,15 @@
 
 ## [1.1.0] — 2026-05-22
 
-- **Subscriptions** — add a profile from a subscription URL (Add from URL...). Supported protocols: VLESS (including XTLS Reality), VMess, Shadowsocks, Trojan, Hysteria2. Response formats: base64, plain text, ready-made sing-box JSON
-- **Subscription update** — Update button in profile settings re-downloads the config from the stored URL
-- **HWID** — subscription requests include `x-hwid`, `x-device-os`, `x-ver-os`, `x-device-model` headers for device identification in the management panel (compatible with Remnawave)
-- **Generated config format** — matches the modern sing-box API: `address` instead of `inet4_address`, `stack: mixed`, sniff, `hijack-dns`, `ip_is_private`, `domain_resolver`
+### Features
+
+- **Subscriptions** — add a profile from a subscription URL via Add from URL... in the Profiles tab. Supported protocols: VLESS (including XTLS Reality), VMess, Shadowsocks, Trojan, Hysteria2. Response formats: base64-encoded URI list, plain-text URI list, ready-made sing-box JSON
+- **Subscription update** — each subscription profile stores its source URL; Update button re-downloads and overwrites the config while preserving per-profile settings (SOCKS5 port, App Routing)
+- **HWID device identification** — subscription requests include `x-hwid`, `x-device-os`, `x-ver-os`, `x-device-model` HTTP headers for device tracking in the management panel (compatible with Remnawave)
+
+### Improvements
+
+- **Generated config format** — subscription-generated configs now use the modern sing-box API: `address` array instead of `inet4_address`, `stack: mixed`, `sniff`, `action: hijack-dns`, `ip_is_private`, `domain_resolver`; fully compatible with TUN, SOCKS5, and hybrid TUN+SOCKS5 modes
 
 ---
 
