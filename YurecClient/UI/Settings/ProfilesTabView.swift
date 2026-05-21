@@ -6,6 +6,8 @@ struct ProfilesTabView: View {
     @ObservedObject private var routingStore = AppRoutingStore.shared
     @State private var selectedProfileID: UUID?
     @State private var showNewProfileSheet = false
+    @State private var showAddSubscriptionSheet = false
+    @State private var refreshingProfileID: UUID?
     @State private var errorMessage: String?
     @State private var showError = false
     @State private var socks5PortText: String = ""
@@ -40,6 +42,7 @@ struct ProfilesTabView: View {
             // Bottom toolbar
             HStack(spacing: 8) {
                 Button("Add...") { pickFile() }
+                Button("Add from URL...") { showAddSubscriptionSheet = true }
                 Button("Remove") { removeSelected() }.disabled(selectedProfileID == nil)
                 Button("Open in Editor") { openSelected() }.disabled(selectedProfileID == nil)
                 Spacer()
@@ -49,6 +52,11 @@ struct ProfilesTabView: View {
         .sheet(isPresented: $showNewProfileSheet) {
             NewProfileSheet(isPresented: $showNewProfileSheet) { name in
                 createProfile(name: name)
+            }
+        }
+        .sheet(isPresented: $showAddSubscriptionSheet) {
+            AddSubscriptionSheet(isPresented: $showAddSubscriptionSheet) { name, url in
+                addFromSubscription(name: name, url: url)
             }
         }
         .alert("Error", isPresented: $showError, presenting: errorMessage) { _ in
@@ -77,10 +85,42 @@ struct ProfilesTabView: View {
                 }
             }
 
+            // Subscription section
+            if let subURL = profileManager.subscriptionURL(for: profile) {
+                Divider()
+                subscriptionSection(for: profile, url: subURL)
+            }
+
             Divider()
 
             // App routing override section
             appRoutingSection(for: profile)
+        }
+    }
+
+    @ViewBuilder
+    private func subscriptionSection(for profile: Profile, url: URL) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text("Subscription")
+                .font(.caption)
+                .foregroundColor(.secondary)
+            HStack(spacing: 8) {
+                Text(url.absoluteString)
+                    .font(.caption)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+                    .foregroundColor(.secondary)
+                Spacer()
+                if refreshingProfileID == profile.id {
+                    ProgressView()
+                        .scaleEffect(0.7)
+                        .frame(width: 50, height: 20)
+                } else {
+                    Button("Update") { refreshSubscription(profile) }
+                        .controlSize(.small)
+                        .disabled(refreshingProfileID != nil)
+                }
+            }
         }
     }
 
@@ -213,6 +253,28 @@ struct ProfilesTabView: View {
         catch { present(error) }
     }
 
+    private func addFromSubscription(name: String, url: URL) {
+        Task {
+            do {
+                try await profileManager.addProfileFromSubscription(name: name, subscriptionURL: url)
+            } catch {
+                await MainActor.run { present(error) }
+            }
+        }
+    }
+
+    private func refreshSubscription(_ profile: Profile) {
+        refreshingProfileID = profile.id
+        Task {
+            do {
+                try await profileManager.refreshProfile(profile)
+            } catch {
+                await MainActor.run { present(error) }
+            }
+            await MainActor.run { refreshingProfileID = nil }
+        }
+    }
+
     private func present(_ error: Error) {
         errorMessage = error.localizedDescription
         showError = true
@@ -244,6 +306,67 @@ struct ProfilesTabView: View {
         let new = pickAppsForRouting(existing: profileEntries)
         profileEntries.append(contentsOf: new)
         routingStore.setEntries(profileEntries, for: profile)
+    }
+}
+
+// MARK: - Add Subscription Sheet
+
+struct AddSubscriptionSheet: View {
+    @Binding var isPresented: Bool
+    var onAdd: (String, URL) -> Void
+
+    @State private var urlText = ""
+    @State private var name = ""
+    @State private var nameEdited = false
+
+    private var parsedURL: URL? {
+        let trimmed = urlText.trimmingCharacters(in: .whitespaces)
+        guard !trimmed.isEmpty else { return nil }
+        return URL(string: trimmed)
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Add Subscription").font(.headline)
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Subscription URL").font(.caption).foregroundColor(.secondary)
+                TextField("https://...", text: $urlText)
+                    .frame(width: 360)
+                    .onChange(of: urlText) { _ in suggestName() }
+            }
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Profile Name").font(.caption).foregroundColor(.secondary)
+                TextField("Name", text: $name)
+                    .frame(width: 360)
+                    .onChange(of: name) { _ in nameEdited = true }
+            }
+
+            HStack {
+                Spacer()
+                Button("Cancel") { isPresented = false }
+                Button("Add") { submit() }
+                    .disabled(parsedURL == nil || name.trimmingCharacters(in: .whitespaces).isEmpty)
+                    .keyboardShortcut(.return)
+            }
+        }
+        .padding(20)
+        .frame(width: 420)
+    }
+
+    private func suggestName() {
+        guard !nameEdited, let url = parsedURL else { return }
+        name = url.host ?? ""
+        nameEdited = false
+    }
+
+    private func submit() {
+        guard let url = parsedURL else { return }
+        let trimmedName = name.trimmingCharacters(in: .whitespaces)
+        guard !trimmedName.isEmpty else { return }
+        isPresented = false
+        onAdd(trimmedName, url)
     }
 }
 

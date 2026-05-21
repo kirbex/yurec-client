@@ -21,6 +21,7 @@
 		BB0001000000000000000001 /* SudoersManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0002000000000000000001 /* SudoersManager.swift */; };
 		CC0001000000000000000001 /* ConnectionMode.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC0002000000000000000001 /* ConnectionMode.swift */; };
 		CC0001000000000000000002 /* ConfigTransformer.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC0002000000000000000002 /* ConfigTransformer.swift */; };
+		CC0001000000000000000003 /* SubscriptionParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC0002000000000000000003 /* SubscriptionParser.swift */; };
 		DD0001000000000000000001 /* StatusBarIconState.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD0002000000000000000001 /* StatusBarIconState.swift */; };
 		DD0001000000000000000002 /* StatusBarIconProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD0002000000000000000002 /* StatusBarIconProvider.swift */; };
 		EE0001000000000000000001 /* AppRoutingEntry.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE0002000000000000000001 /* AppRoutingEntry.swift */; };
@@ -48,6 +49,7 @@
 		BB0002000000000000000001 /* SudoersManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SudoersManager.swift; sourceTree = "<group>"; };
 		CC0002000000000000000001 /* ConnectionMode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionMode.swift; sourceTree = "<group>"; };
 		CC0002000000000000000002 /* ConfigTransformer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConfigTransformer.swift; sourceTree = "<group>"; };
+		CC0002000000000000000003 /* SubscriptionParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubscriptionParser.swift; sourceTree = "<group>"; };
 		DD0002000000000000000001 /* StatusBarIconState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusBarIconState.swift; sourceTree = "<group>"; };
 		DD0002000000000000000002 /* StatusBarIconProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusBarIconProvider.swift; sourceTree = "<group>"; };
 		EE0002000000000000000001 /* AppRoutingEntry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppRoutingEntry.swift; sourceTree = "<group>"; };
@@ -124,6 +126,7 @@
 				BB0002000000000000000001 /* SudoersManager.swift */,
 				CC0002000000000000000001 /* ConnectionMode.swift */,
 				CC0002000000000000000002 /* ConfigTransformer.swift */,
+				CC0002000000000000000003 /* SubscriptionParser.swift */,
 				EE0002000000000000000001 /* AppRoutingEntry.swift */,
 				EE0002000000000000000002 /* AppRoutingStore.swift */,
 			);
@@ -244,6 +247,7 @@
 				BB0001000000000000000001 /* SudoersManager.swift in Sources */,
 				CC0001000000000000000001 /* ConnectionMode.swift in Sources */,
 				CC0001000000000000000002 /* ConfigTransformer.swift in Sources */,
+				CC0001000000000000000003 /* SubscriptionParser.swift in Sources */,
 				DD0001000000000000000001 /* StatusBarIconState.swift in Sources */,
 				DD0001000000000000000002 /* StatusBarIconProvider.swift in Sources */,
 				EE0001000000000000000001 /* AppRoutingEntry.swift in Sources */,

@@ -98,6 +98,7 @@ class ProfileManager: ObservableObject {
     }
 
     func removeProfile(_ profile: Profile) throws {
+        setSubscriptionURL(nil, for: profile)
         try FileManager.default.removeItem(at: profile.path)
     }
 
@@ -113,6 +114,55 @@ class ProfileManager: ObservableObject {
 
     func openInEditor(_ profile: Profile) {
         NSWorkspace.shared.open(profile.path)
+    }
+
+    // MARK: - Subscription Support
+
+    func subscriptionURL(for profile: Profile) -> URL? {
+        guard let stored = UserDefaults.standard.string(forKey: subscriptionKey(for: profile)) else { return nil }
+        return URL(string: stored)
+    }
+
+    private func setSubscriptionURL(_ url: URL?, for profile: Profile) {
+        if let url = url {
+            UserDefaults.standard.set(url.absoluteString, forKey: subscriptionKey(for: profile))
+        } else {
+            UserDefaults.standard.removeObject(forKey: subscriptionKey(for: profile))
+        }
+    }
+
+    private func subscriptionKey(for profile: Profile) -> String {
+        "subscriptionURL_\(profile.path.absoluteString)"
+    }
+
+    func addProfileFromSubscription(name: String, subscriptionURL: URL) async throws {
+        let fileName = name.hasSuffix(".json") ? name : "\(name).json"
+        let destination = profilesDir.appendingPathComponent(fileName)
+        if FileManager.default.fileExists(atPath: destination.path) {
+            throw ProfileError.alreadyExists
+        }
+        let raw = try await fetchData(from: subscriptionURL)
+        let configData = try SubscriptionParser.buildSingboxConfig(from: raw)
+        try configData.write(to: destination, options: .atomic)
+        let profile = Profile(path: destination)
+        setSubscriptionURL(subscriptionURL, for: profile)
+    }
+
+    func refreshProfile(_ profile: Profile) async throws {
+        guard let url = subscriptionURL(for: profile) else {
+            throw ProfileError.noSubscriptionURL
+        }
+        let raw = try await fetchData(from: url)
+        let configData = try SubscriptionParser.buildSingboxConfig(from: raw)
+        try configData.write(to: profile.path, options: .atomic)
+    }
+
+    private func fetchData(from url: URL) async throws -> Data {
+        let (data, response) = try await URLSession.shared.data(from: url)
+        guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
+            throw ProfileError.downloadFailed
+        }
+        return data
     }
 
     // MARK: - Per-Profile Settings
@@ -207,10 +257,14 @@ class ProfileManager: ObservableObject {
 
 enum ProfileError: LocalizedError {
     case alreadyExists
+    case downloadFailed
+    case noSubscriptionURL
 
     var errorDescription: String? {
         switch self {
         case .alreadyExists: return "A profile with that name already exists."
+        case .downloadFailed: return "Failed to download profile from the subscription URL."
+        case .noSubscriptionURL: return "This profile has no subscription URL."
         }
     }
 }

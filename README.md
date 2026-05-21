@@ -11,6 +11,7 @@ macOS menu bar приложение — графический фронтенд 
 - [Режим TUN](#режим-tun)
 - [Режим SOCKS5](#режим-socks5)
 - [Профили](#профили)
+- [Подписки](#подписки)
 - [Маршрутизация по приложениям (App Routing)](#маршрутизация-по-приложениям-app-routing)
 - [Практическая настройка: ChatGPT, Claude, VS Code](#практическая-настройка)
 - [Sudoers и права](#sudoers-и-права)
@@ -39,7 +40,8 @@ YurecClient
 ├── AppDelegate                  — точка входа, инициализация StatusItem
 ├── Managers/
 │   ├── ProxyManager             — запуск/остановка sing-box, управление жизненным циклом
-│   ├── ProfileManager           — хранение и наблюдение за JSON-конфигами
+│   ├── ProfileManager           — хранение и наблюдение за JSON-конфигами, подписки
+│   ├── SubscriptionParser       — разбор proxy URI и сборка sing-box конфига
 │   ├── ConfigTransformer        — трансформация конфига под режим SOCKS5
 │   ├── AppRoutingStore          — хранение списков приложений для маршрутизации
 │   ├── AppRoutingEntry          — модель одного приложения в списке маршрутизации
@@ -193,6 +195,14 @@ ProxyManager.stop()
 
 Профили — это JSON-файлы конфигурации sing-box, хранящиеся в `~/.singbox/profiles/`. Приложение наблюдает за этой директорией через **FSEvents** и автоматически обновляет список.
 
+### Способы добавления профиля
+
+| Кнопка | Описание |
+|---|---|
+| **Add...** | Импортировать готовый JSON-файл sing-box с диска |
+| **Add from URL...** | Создать профиль из ссылки на подписку (см. [Подписки](#подписки)) |
+| **New Profile...** | Создать пустой профиль-шаблон для ручного редактирования |
+
 ### Что хранится в профиле
 
 Стандартный sing-box JSON с:
@@ -206,6 +216,69 @@ ProxyManager.stop()
 
 - **SOCKS5 Port** — порт (по умолчанию 2080)
 - **App Routing override** — собственный список приложений вместо глобального
+- **Subscription** — URL подписки (отображается, если профиль создан из подписки) + кнопка **Update**
+
+---
+
+## Подписки
+
+Подписка — это URL, по которому отдаётся список прокси-серверов. При добавлении YurecClient скачивает конфигурацию и автоматически превращает её в полноценный sing-box JSON.
+
+### Как добавить
+
+Настройки → Profiles → **Add from URL...**
+
+- **Subscription URL** — ссылка на подписку
+- **Profile Name** — имя профиля (подставляется автоматически из hostname URL)
+
+### Обновление
+
+В настройках профиля отображается URL подписки и кнопка **Update** — повторно скачивает и перезаписывает конфиг. Текущие настройки профиля (SOCKS5 порт, App Routing) сохраняются.
+
+### Поддерживаемые форматы ответа
+
+| Формат | Описание |
+|---|---|
+| Base64 (стандартный и URL-safe) | Строки proxy URI, закодированные в base64 — самый распространённый формат подписок |
+| Plain text | Proxy URI по одному на строку |
+| sing-box JSON | Готовый конфиг — используется без преобразования |
+
+### Поддерживаемые протоколы
+
+| Протокол | Формат URI |
+|---|---|
+| VLESS | `vless://uuid@host:port?params#name` — включая XTLS Reality |
+| VMess | `vmess://base64(JSON)` |
+| Shadowsocks | `ss://base64(method:password)@host:port#name` (SIP002 и legacy) |
+| Trojan | `trojan://password@host:port?params#name` |
+| Hysteria2 | `hysteria2://password@host:port?params#name` и `hy2://...` |
+
+### Генерируемый конфиг
+
+Из proxy URI собирается полноценный sing-box конфиг, совместимый со всеми режимами работы:
+
+```
+inbounds:
+  - tun-in  (inet4_address: 172.19.0.1/30, auto_route, strict_route)
+  - socks-in (127.0.0.1:2080, заменяется ConfigTransformer при запуске)
+
+dns:
+  - remote  → tls://1.1.1.1     (через proxy)
+  - local   → 223.5.5.5         (напрямую, для DNS-запросов outbound'ов)
+  - fakeip  → 198.18.0.0/15     (для TUN)
+
+outbounds:
+  - selector "proxy"  (переключение между серверами если их несколько)
+  - <proxy outbounds> (VLESS / VMess / SS / Trojan / Hysteria2)
+  - direct / block / dns-out
+
+route:
+  - DNS → dns-out
+  - private IP → direct
+  - всё остальное → proxy
+```
+
+При нескольких серверах в подписке создаётся `selector` outbound — активный сервер можно выбрать через Clash API.
 
 ---
 
@@ -385,7 +458,8 @@ YurecClient/
 ├── Managers/
 │   ├── ConnectionMode.swift         — enum .tun / .socks5(port:), requiresRoot
 │   ├── ProxyManager.swift           — ядро: запуск, остановка, process lifecycle
-│   ├── ProfileManager.swift         — CRUD профилей, FSEvents, активный профиль
+│   ├── ProfileManager.swift         — CRUD профилей, FSEvents, активный профиль, подписки
+│   ├── SubscriptionParser.swift     — разбор proxy URI → sing-box JSON конфиг
 │   ├── ConfigTransformer.swift      — трансформация конфига для SOCKS5
 │   ├── AppRoutingEntry.swift        — модель приложения, авто-сбор хелпер-процессов
 │   ├── AppRoutingStore.swift        — двухуровневое хранилище глобал/профиль
@@ -402,6 +476,6 @@ YurecClient/
         ├── SettingsView.swift           — таб-контейнер
         ├── SettingsWindowController.swift
         ├── GeneralTabView.swift         — Launch at Login, бинарник, App Routing (глобал)
-        ├── ProfilesTabView.swift        — список профилей, SOCKS5 порт, App Routing (профиль)
+        ├── ProfilesTabView.swift        — список профилей, SOCKS5 порт, App Routing (профиль), подписки
         └── AppRoutingListView.swift     — переиспользуемый список с +/- тулбаром
 ```
