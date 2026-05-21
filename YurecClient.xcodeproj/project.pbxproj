@@ -31,6 +31,7 @@
 		AA0001000000000000000001 /* SystemConfiguration.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AA0002000000000000000001 /* SystemConfiguration.framework */; };
 		AA0001000000000000000002 /* ServiceManagement.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AA0002000000000000000002 /* ServiceManagement.framework */; };
 		AA0001000000000000000003 /* Security.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AA0002000000000000000003 /* Security.framework */; };
+		AA0001000000000000000004 /* IOKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AA0002000000000000000004 /* IOKit.framework */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -60,6 +61,7 @@
 		AA0002000000000000000001 /* SystemConfiguration.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SystemConfiguration.framework; path = System/Library/Frameworks/SystemConfiguration.framework; sourceTree = SDKROOT; };
 		AA0002000000000000000002 /* ServiceManagement.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ServiceManagement.framework; path = System/Library/Frameworks/ServiceManagement.framework; sourceTree = SDKROOT; };
 		AA0002000000000000000003 /* Security.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Security.framework; path = System/Library/Frameworks/Security.framework; sourceTree = SDKROOT; };
+		AA0002000000000000000004 /* IOKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = IOKit.framework; path = System/Library/Frameworks/IOKit.framework; sourceTree = SDKROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -70,6 +72,7 @@
 				AA0001000000000000000001 /* SystemConfiguration.framework in Frameworks */,
 				AA0001000000000000000002 /* ServiceManagement.framework in Frameworks */,
 				AA0001000000000000000003 /* Security.framework in Frameworks */,
+				AA0001000000000000000004 /* IOKit.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -103,6 +106,7 @@
 				AA0002000000000000000001 /* SystemConfiguration.framework */,
 				AA0002000000000000000002 /* ServiceManagement.framework */,
 				AA0002000000000000000003 /* Security.framework */,
+				AA0002000000000000000004 /* IOKit.framework */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";

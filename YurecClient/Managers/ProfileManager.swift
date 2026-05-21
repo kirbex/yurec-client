@@ -1,6 +1,7 @@
 import Foundation
 import Combine
 import AppKit
+import IOKit
 
 struct Profile: Identifiable, Equatable {
     let id: UUID
@@ -158,11 +159,42 @@ class ProfileManager: ObservableObject {
     }
 
     private func fetchData(from url: URL) async throws -> Data {
-        let (data, response) = try await URLSession.shared.data(from: url)
+        var request = URLRequest(url: url)
+        if let hwid = Self.hardwareUUID() {
+            request.setValue(hwid, forHTTPHeaderField: "x-hwid")
+        }
+        request.setValue("macOS",                                            forHTTPHeaderField: "x-device-os")
+        request.setValue(Self.osVersion(),                                   forHTTPHeaderField: "x-ver-os")
+        request.setValue(Self.deviceModel(),                                 forHTTPHeaderField: "x-device-model")
+        request.setValue("YurecClient/1.0 (macOS; \(Self.osVersion()))",     forHTTPHeaderField: "User-Agent")
+
+        let (data, response) = try await URLSession.shared.data(for: request)
         guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
             throw ProfileError.downloadFailed
         }
         return data
+    }
+
+    static func hardwareUUID() -> String? {
+        let service = IOServiceGetMatchingService(kIOMainPortDefault, IOServiceMatching("IOPlatformExpertDevice"))
+        defer { IOObjectRelease(service) }
+        guard service != 0 else { return nil }
+        let ref = IORegistryEntryCreateCFProperty(service, "IOPlatformUUID" as CFString, kCFAllocatorDefault, 0)
+        return ref?.takeRetainedValue() as? String
+    }
+
+    private static func osVersion() -> String {
+        let v = ProcessInfo.processInfo.operatingSystemVersion
+        return "\(v.majorVersion).\(v.minorVersion).\(v.patchVersion)"
+    }
+
+    private static func deviceModel() -> String {
+        var size = 0
+        sysctlbyname("hw.model", nil, &size, nil, 0)
+        guard size > 0 else { return "Mac" }
+        var buf = [CChar](repeating: 0, count: size)
+        sysctlbyname("hw.model", &buf, &size, nil, 0)
+        return String(cString: buf)
     }
 
     // MARK: - Per-Profile Settings
