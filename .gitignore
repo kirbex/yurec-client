@@ -59,7 +59,7 @@ build-check/
 build-release/
 
 # Release artifacts
-*.dmg
+releases/
 
 # Claude Code
 .claude/

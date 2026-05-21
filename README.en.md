@@ -4,22 +4,6 @@ A macOS menu bar application — a graphical front-end for [sing-box](https://si
 
 ---
 
-## Changelog
-
-### 1.1.0 — 2026-05-22
-- **Subscriptions** — add a profile from a subscription URL (Add from URL...). Supported protocols: VLESS (including XTLS Reality), VMess, Shadowsocks, Trojan, Hysteria2. Response formats: base64, plain text, ready-made sing-box JSON
-- **Subscription update** — Update button in profile settings re-downloads the config from the stored URL
-- **HWID** — subscription requests include `x-hwid`, `x-device-os`, `x-ver-os`, `x-device-model` headers for device identification in the management panel (compatible with Remnawave)
-- **Generated config format** — matches the modern sing-box API: `address` instead of `inet4_address`, `stack: mixed`, sniff, `hijack-dns`, `ip_is_private`, `domain_resolver`
-
-### 1.0.1 — 2026-04-25
-- Fixed QUIC bug in TUN+SOCKS5 hybrid mode
-
-### 1.0.0 — 2026-04-25
-- Initial public release
-
----
-
 ## Table of Contents
 
 - [Requirements](#requirements)
