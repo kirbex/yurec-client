@@ -7,20 +7,33 @@
 - **HWID** — subscription requests include `x-hwid`, `x-device-os`, `x-ver-os`, `x-device-model` headers for device identification in the management panel (compatible with Remnawave)
 - **Generated config format** — matches the modern sing-box API: `address` instead of `inet4_address`, `stack: mixed`, sniff, `hijack-dns`, `ip_is_private`, `domain_resolver`
 
+---
+
 ## [1.0.1] — 2026-04-25
 
-- **SOCKS5 DNS fix** — resolved DNS resolution failures where fakeip server references remained in rules after removal, causing A/AAAA resolution to break for sites like Yandex, Gmail, and Google Meet in SOCKS5 mode
-- **TUN+SOCKS5 QUIC fix** — added UDP port 443 blocking rules for selected processes, forcing browsers to fall back to TCP through the proxy instead of attempting QUIC over UDP
+### Bug Fixes
+
+- **SOCKS5: fixed broken page loading for certain sites (Yandex, Gmail, Google Meet, etc.)**
+In plain SOCKS5 mode, the fakeip DNS server was removed from the config but DNS rules referencing it (e.g. `{"query_type": ["A","AAAA"], "server": "fakeip"}`) were left intact. Sing-box attempted to route A/AAAA queries to the now-missing server, causing DNS resolution to fail. Sites that rely on many subdomains would not load or loaded only partially.
+
+- **TUN+SOCKS5: fixed broken page loading in hybrid mode**
+Chrome and Yandex Browser aggressively use QUIC/HTTP3 (UDP) for Google and Yandex services when no system proxy is detected. TUN captured this UDP traffic, but most proxy servers do not support UDP relay — connections were dropped. A routing rule is now injected that blocks UDP port 443 for selected processes, causing the browser to immediately fall back to TCP, which flows correctly through TUN → proxy.
+
+---
 
 ## [1.0.0] — 2026-04-25
 
-Initial release.
+First public release — a macOS menu bar front-end for [sing-box](https://sing-box.sagernet.org/).
 
-- TUN mode — full-system VPN via virtual network interface (L3 capture, no per-app configuration needed)
-- SOCKS5 mode — sets macOS system proxy; hybrid TUN+SOCKS5 sub-mode routes selected apps through VPN while everything else goes direct
-- App routing — per-process traffic routing with automatic helper process detection for Electron apps (Claude, VS Code, ChatGPT)
-- Multi-profile support with live reload via FSEvents
-- Passwordless sudo integration (one-time setup via `/etc/sudoers.d/yurec`)
-- External process detection — adopts a running sing-box instance started outside the app
-- Launch at login and auto-connect on launch
-- Built-in log viewer with configurable size limit
+### Features
+
+- **TUN mode** — full-system VPN via virtual network interface; all traffic intercepted at L3 level, DNS redirected to sing-box fake-ip stack
+- **SOCKS5 mode** — sets macOS system proxy; or hybrid TUN+SOCKS5 when App Routing list is non-empty
+- **App Routing** — route only specific apps through VPN while everything else goes direct
+  - Auto-detection of all helper processes for `.app` bundles (Electron apps: Claude, ChatGPT, VS Code)
+  - Support for plain executables (e.g. `claude` binary from Claude Code VS Code extension)
+- **Profiles** — manage multiple sing-box JSON configs from `~/.singbox/profiles/`; live-reload via FSEvents; per-profile SOCKS5 port and routing overrides
+- **Sudoers auto-install** — passwordless `sudo` rule installed once on first connect
+- **External process detection** — automatically adopts a `sing-box` process started outside the app (Terminal, launchd, etc.)
+- **Launch at Login** + **Auto-connect on launch**
+- **Log viewer** — `~/Library/Logs/YurecClient/sing-box.log`; clear and size-limit controls in Settings
