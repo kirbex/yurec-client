@@ -42,6 +42,10 @@
   - Учесть: галочка "Keep VPN running on quit" в Settings как возможный компромисс
   - Учесть: при следующем запуске приложение должно корректно подхватить уже работающий VPN (уже реализовано)
 
+## App Routing
+
+- [ ] **Системные приложения Apple не маршрутизируются** — Safari, Mail, News, App Store и другие WebKit-приложения делегируют все сетевые соединения в общий системный процесс `com.apple.WebKit.Networking`, который не находится внутри бандла приложения. Правило `process_name: ["Safari"]` не срабатывает. Подробно: [docs/webkit-shared-process-limitation.md](docs/webkit-shared-process-limitation.md)
+
 ## Исследовать
 
 - [x] **SOCKS5: не все сайты работают** — причина найдена и исправлена: TUN принимал IPv6 TCP-handshake локально, а затем RST-ил соединение (нет глобального IPv6 у провайдера). Фикс: `strategy: ipv4_only` в DNS-конфиге когда нет глобального IPv6 на машине. Подробно: `docs/ipv6-routing-behavior.md`
