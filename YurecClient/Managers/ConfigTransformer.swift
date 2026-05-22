@@ -137,6 +137,20 @@ enum ConfigTransformer {
                 }
             }
         }
+
+        // When the host has no globally-routable IPv6 address, force IPv4-only DNS.
+        // Without this, browsers receive AAAA records and attempt IPv6 via TUN;
+        // sing-box accepts the TCP handshake locally then RSTs on failure, which
+        // browsers surface as ERR_CONNECTION_RESET instead of a transparent IPv4
+        // fallback (observed with Yandex/kinopoisk, Gmail, and similar dual-stack sites).
+        // When IPv6 is available on the physical interface we leave the strategy
+        // untouched so dual-stack connections work normally.
+        if !DNSHelper.hasGlobalIPv6() {
+            if var dns = config["dns"] as? [String: Any] {
+                dns["strategy"] = "ipv4_only"
+                config["dns"] = dns
+            }
+        }
         // Plain SOCKS5: routing unchanged (all traffic through proxy by default).
 
         // Write to temp file (deleted on stop)

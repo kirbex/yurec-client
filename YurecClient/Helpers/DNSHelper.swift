@@ -1,10 +1,32 @@
 import Foundation
 import SystemConfiguration
+import Darwin
 
 /// Sets and resets DNS servers for all enabled network services.
 /// Uses `sudo -n /usr/sbin/networksetup` (allowed without a password via
 /// the sudoers rule installed by SudoersManager).
 enum DNSHelper {
+
+    /// Returns true if at least one physical (non-TUN, non-loopback) interface
+    /// has a globally-routable IPv6 address (i.e. not link-local fe80::/10).
+    static func hasGlobalIPv6() -> Bool {
+        var ifaddr: UnsafeMutablePointer<ifaddrs>?
+        guard getifaddrs(&ifaddr) == 0, let head = ifaddr else { return false }
+        defer { freeifaddrs(head) }
+        var ptr: UnsafeMutablePointer<ifaddrs>? = head
+        while let cur = ptr {
+            defer { ptr = cur.pointee.ifa_next }
+            guard let addr = cur.pointee.ifa_addr,
+                  addr.pointee.sa_family == UInt8(AF_INET6) else { continue }
+            let name = String(cString: cur.pointee.ifa_name)
+            guard !name.hasPrefix("utun"), !name.hasPrefix("lo") else { continue }
+            let sin6 = addr.withMemoryRebound(to: sockaddr_in6.self, capacity: 1) { $0.pointee }
+            let b = sin6.sin6_addr.__u6_addr.__u6_addr8
+            let isLinkLocal = (b.0 == 0xfe) && ((b.1 & 0xc0) == 0x80)
+            if !isLinkLocal { return true }
+        }
+        return false
+    }
 
     static func setDNS(_ server: String) {
         forEachEnabledService { name in
