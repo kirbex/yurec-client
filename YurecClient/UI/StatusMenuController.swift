@@ -53,6 +53,11 @@ class StatusMenuController: NSObject {
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in self?.buildMenu() }
             .store(in: &cancellables)
+
+        proxyManager.$singBoxVersion
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in self?.buildMenu() }
+            .store(in: &cancellables)
     }
 
     // MARK: - Icon state machine
@@ -219,6 +224,15 @@ class StatusMenuController: NSObject {
         let settingsItem = NSMenuItem(title: "Settings...", action: #selector(openSettings), keyEquivalent: ",")
         settingsItem.target = self
         menu.addItem(settingsItem)
+
+        // Version info
+        let appVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? ""
+        let sbVersion = proxyManager.singBoxVersion
+        let sbPart = sbVersion.isEmpty ? "sing-box: not found" : "sing-box \(sbVersion)"
+        let versionTitle = "YurecClient \(appVersion)  ·  \(sbPart)"
+        let versionItem = NSMenuItem(title: versionTitle, action: nil, keyEquivalent: "")
+        versionItem.isEnabled = false
+        menu.addItem(versionItem)
 
         // Quit
         let quitItem = NSMenuItem(title: "Quit", action: #selector(quitApp), keyEquivalent: "q")

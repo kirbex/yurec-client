@@ -14,7 +14,7 @@ class ProxyManager: ObservableObject {
     private var runningProcess: Process?  // strong ref so process isn't deallocated
     private var statusTimer: Timer?
     private var binaryPath: String = ""
-    private var tempConfigURL: URL?   // temp file for SOCKS5 transformed config
+    private var tempConfigURL: URL?   // temp file written by ConfigTransformer (SOCKS5 or TUN sanitized)
     private var logForwarder: LogForwarder?
     /// True when the current SOCKS5 session uses the TUN+SOCKS hybrid mode
     /// (i.e. at least one app is selected for routing). Used to decide which
@@ -27,6 +27,7 @@ class ProxyManager: ObservableObject {
         print("[YurecClient] ProxyManager.init: binaryPath=\(binaryPath)")
         setupSignalHandlers()
         setupAtExit()
+        DispatchQueue.global(qos: .utility).async { self.fetchSingBoxVersion() }
         print("[YurecClient] ProxyManager.init: done")
     }
 
@@ -61,9 +62,32 @@ class ProxyManager: ObservableObject {
     func updateBinaryPath(_ path: String) {
         UserDefaults.standard.set(path, forKey: "yurecBinaryPath")
         binaryPath = path.isEmpty ? resolveBinaryPath() : path
+        singBoxVersion = ""
+        DispatchQueue.global(qos: .utility).async { self.fetchSingBoxVersion() }
     }
 
     var currentBinaryPath: String { binaryPath }
+
+    /// Cached sing-box version string, e.g. "1.13.12". Empty if binary not found or not yet queried.
+    @Published private(set) var singBoxVersion: String = ""
+
+    /// Runs `sing-box version` once and caches the result in `singBoxVersion`.
+    func fetchSingBoxVersion() {
+        let task = Process()
+        task.executableURL = URL(fileURLWithPath: binaryPath)
+        task.arguments = ["version"]
+        let pipe = Pipe()
+        task.standardOutput = pipe
+        task.standardError = Pipe()
+        guard (try? task.run()) != nil else { return }
+        task.waitUntilExit()
+        let out = String(data: pipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? ""
+        // First line: "sing-box version 1.13.12"
+        if let firstLine = out.split(separator: "\n").first,
+           let ver = firstLine.split(separator: " ").last {
+            DispatchQueue.main.async { self.singBoxVersion = String(ver) }
+        }
+    }
 
     /// Path for sing-box stdout/stderr log. User-owned so the shell can create it.
     static var singBoxLogURL: URL = {
@@ -87,9 +111,15 @@ class ProxyManager: ObservableObject {
         let configPath: String
         switch mode {
         case .tun:
-            // Use the profile as-is — socks-in inbound stays so Telegram and other
-            // apps configured to use the local SOCKS proxy continue to work in TUN mode.
-            configPath = profilePath
+            // Strip legacy sing-box < 1.13 inbound fields (sniff, sniff_override_destination, …)
+            // if present. socks-in inbound is kept so Telegram and other apps configured to use
+            // the local SOCKS proxy continue to work in TUN mode.
+            if let sanitizedURL = try? ConfigTransformer.makeTunConfig(from: profilePath) {
+                tempConfigURL = sanitizedURL
+                configPath = sanitizedURL.path
+            } else {
+                configPath = profilePath
+            }
 
         case .socks5(let port):
             // Second-pass port check: even if killOrphanedSingBox ran, something may still

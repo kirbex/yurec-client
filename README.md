@@ -25,10 +25,11 @@ macOS menu bar приложение — графический фронтенд 
 ## Требования
 
 - macOS 13 Ventura или новее
-- [sing-box](https://sing-box.sagernet.org/) установлен в системе:
+- [sing-box](https://sing-box.sagernet.org/) **1.11.0 или новее** установлен в системе:
   - `/usr/local/bin/sing-box` (автоопределение)
   - `/opt/homebrew/bin/sing-box` (автоопределение)
   - или любой произвольный путь, заданный в настройках
+  - Рекомендуется актуальная стабильная версия (на данный момент 1.13.x)
 - Xcode 15+ для сборки
 
 ---
@@ -75,7 +76,7 @@ StatusMenuController.connectTun()
   └── beginConnect(to: .tun, profile:)
         └── ProxyManager.start(profilePath:, mode: .tun)
               1. killOrphanedSingBox()         — убить осиротевшие процессы sing-box
-              2. configPath = profilePath      — TUN использует профиль напрямую, без трансформации
+              2. ConfigTransformer.makeTunConfig() — убирает legacy inbound поля если есть, пишет temp файл
               3. SudoersManager.isInstalled()  — проверить наличие sudoers-правила
                   └── если нет → SudoersManager.install() → диалог пароля (один раз за всё время)
               4. открыть/создать лог-файл      — ~/Library/Logs/YurecClient/sing-box.log
@@ -259,7 +260,7 @@ ProxyManager.stop()
 
 ```
 inbounds:
-  - tun-in  (inet4_address: 172.19.0.1/30, auto_route, strict_route)
+  - tun-in  (address: 172.19.0.1/30, auto_route, strict_route, stack: mixed)
   - socks-in (127.0.0.1:2080, заменяется ConfigTransformer при запуске)
 
 dns:
@@ -273,7 +274,8 @@ outbounds:
   - direct / block / dns-out
 
 route:
-  - DNS → dns-out
+  - action: sniff (override_destination: true)
+  - DNS hijack → dns-out
   - private IP → direct
   - всё остальное → proxy
 ```

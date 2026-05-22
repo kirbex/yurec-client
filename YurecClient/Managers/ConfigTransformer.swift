@@ -42,7 +42,8 @@ enum ConfigTransformer {
             // Plain SOCKS5: drop TUN inbound, no root-level network capture needed.
             inbounds.removeAll { ($0["type"] as? String) == "tun" }
         }
-        // In hybrid TUN mode the TUN inbound is kept as-is from the profile.
+        // In hybrid TUN mode: keep the TUN inbound but strip legacy fields removed in sing-box 1.13.0.
+        inbounds = inbounds.map { Self.sanitizeTunInbound($0) }
         inbounds.removeAll { ($0["type"] as? String) == "socks" }
         inbounds.insert([
             "type":        "socks",
@@ -144,5 +145,42 @@ enum ConfigTransformer {
         let outData = try JSONSerialization.data(withJSONObject: config, options: [.prettyPrinted, .sortedKeys])
         try outData.write(to: out)
         return out
+    }
+
+    /// Sanitizes a profile config for plain TUN mode by stripping legacy inbound fields
+    /// removed in sing-box 1.13.0 (`sniff`, `sniff_override_destination`, `domain_strategy`,
+    /// `udp_timeout`). Returns the path to a sanitized temp file, or `nil` if the profile is
+    /// already clean (so the caller can use the original file directly).
+    static func makeTunConfig(from profilePath: String) throws -> URL? {
+        guard let data = FileManager.default.contents(atPath: profilePath) else {
+            throw Error.unreadable
+        }
+        guard var config = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+            throw Error.invalidJSON
+        }
+
+        let inbounds = (config["inbounds"] as? [[String: Any]]) ?? []
+        let sanitized = inbounds.map { Self.sanitizeTunInbound($0) }
+        guard !zip(inbounds, sanitized).allSatisfy({ NSDictionary(dictionary: $0.0).isEqual(to: $0.1) }) else {
+            return nil  // nothing to change — use original file
+        }
+        config["inbounds"] = sanitized
+
+        let out = FileManager.default.temporaryDirectory
+            .appendingPathComponent("yurec-tun-\(UUID().uuidString).json")
+        let outData = try JSONSerialization.data(withJSONObject: config, options: [.prettyPrinted, .sortedKeys])
+        try outData.write(to: out)
+        return out
+    }
+
+    // Removes legacy per-inbound fields deprecated in sing-box 1.11.0 and removed in 1.13.0.
+    private static func sanitizeTunInbound(_ inbound: [String: Any]) -> [String: Any] {
+        guard (inbound["type"] as? String) == "tun" else { return inbound }
+        var clean = inbound
+        clean.removeValue(forKey: "sniff")
+        clean.removeValue(forKey: "sniff_override_destination")
+        clean.removeValue(forKey: "domain_strategy")
+        clean.removeValue(forKey: "udp_timeout")
+        return clean
     }
 }
