@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.2.0] — 2026-05-22
+
+### Bug Fixes
+
+- **SOCKS5 hybrid: ERR_CONNECTION_RESET on dual-stack sites (Yandex, Gmail, Kinopoisk, etc.)** — in hybrid TUN+SOCKS5 mode (`route.final = "direct"`) browsers use Happy Eyeballs and race IPv4/IPv6 connections simultaneously. sing-box accepted the IPv6 TCP handshake locally via TUN, then sent a TCP RST when it could not forward the connection outbound (no global IPv6 on the machine). Because the RST arrived after the handshake, browsers treated it as a server-side reset rather than an unreachable address and did not fall back to IPv4. Fix: at config generation time the client checks whether any physical interface has a globally-routable IPv6 address (`DNSHelper.hasGlobalIPv6()`); if not, `dns.strategy` is set to `ipv4_only` so AAAA records are never returned to clients and no IPv6 connection is attempted. On dual-stack networks the strategy is left unchanged and IPv6 works normally.
+
+---
+
 ## [1.1.1] — 2026-05-22
 
 ### Bug Fixes
