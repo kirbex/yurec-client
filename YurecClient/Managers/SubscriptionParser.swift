@@ -427,7 +427,7 @@ enum SubscriptionParser {
                 "auto_detect_interface": true,
                 "final":                 "proxy",
                 "rules": [
-                    ["action": "sniff", "override_destination": true],
+                    ["action": "sniff"],
                     ["protocol": "dns",        "action":  "hijack-dns"],
                     ["ip_is_private": true,    "outbound": "direct"]
                 ]

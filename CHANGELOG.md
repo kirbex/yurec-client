@@ -4,7 +4,7 @@
 
 ### Bug Fixes
 
-- **sing-box 1.13.x compatibility** — fixed fatal startup error with sing-box 1.13.4 and later. These versions enforce removal of legacy inbound-level fields (`sniff`, `sniff_override_destination`, `domain_strategy`, `udp_timeout`) that were deprecated in 1.11.0. YurecClient now strips these fields automatically from any profile at launch — both from subscription-generated configs and from manually crafted profiles. Subscription-generated configs no longer emit these fields at all; sniffing is configured via `action: sniff` route rule as required by the current sing-box API. Minimum supported sing-box version: **1.11.0**.
+- **sing-box 1.13.x compatibility** — fixed fatal startup error with sing-box 1.13.4 and later. These versions enforce removal of legacy inbound-level fields (`sniff`, `sniff_override_destination`, `domain_strategy`, `udp_timeout`) that were deprecated in 1.11.0. YurecClient now strips these fields automatically from any profile at launch — both from subscription-generated configs and from manually crafted profiles. Minimum supported sing-box version: **1.11.0**.
 
 ### Improvements
 
@@ -22,7 +22,7 @@
 
 ### Improvements
 
-- **Generated config format** — subscription-generated configs now use the modern sing-box API: `address` array instead of `inet4_address`, `stack: mixed`, `sniff`, `action: hijack-dns`, `ip_is_private`, `domain_resolver`; fully compatible with TUN, SOCKS5, and hybrid TUN+SOCKS5 modes
+- **Generated config format** — subscription-generated configs now use the modern sing-box API: `address` array instead of `inet4_address`, `stack: mixed`, `action: hijack-dns`, `ip_is_private`, `domain_resolver`; fully compatible with TUN, SOCKS5, and hybrid TUN+SOCKS5 modes
 
 ---
 
