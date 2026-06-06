@@ -4,15 +4,18 @@ import Foundation
 ///
 /// **Plain SOCKS5** (no apps selected — `routedProcessNames` is empty):
 ///   - Removes `tun` inbounds (no TUN needed)
-///   - Replaces `socks` inbound with a fresh one on the given port
+///   - Replaces `socks`/`mixed` inbounds with a fresh `mixed` inbound on the given port
 ///   - Strips `fakeip` DNS entries (TUN-only feature)
 ///   - Routing unchanged — all traffic goes through proxy by default
 ///
 /// **Hybrid TUN+SOCKS5** (apps selected — `routedProcessNames` is non-empty):
 ///   - Keeps the `tun` inbound so TUN captures all traffic for per-process routing
-///   - Replaces `socks` inbound with a fresh one on the given port
+///   - Replaces `socks`/`mixed` inbounds with a fresh `mixed` inbound on the given port
 ///   - Keeps fakeip DNS (required for TUN)
 ///   - Selected apps → proxy outbound; route.final = "direct" (everything else bypasses VPN)
+///
+/// The `mixed` inbound type accepts both SOCKS5 and HTTP CONNECT on the same port,
+/// allowing CLI tools to use `http_proxy`/`https_proxy` env vars without a separate port.
 enum ConfigTransformer {
 
     enum Error: LocalizedError {
@@ -44,10 +47,10 @@ enum ConfigTransformer {
         }
         // In hybrid TUN mode: keep the TUN inbound but strip legacy fields removed in sing-box 1.13.0.
         inbounds = inbounds.map { Self.sanitizeTunInbound($0) }
-        inbounds.removeAll { ($0["type"] as? String) == "socks" }
+        inbounds.removeAll { ($0["type"] as? String) == "socks" || ($0["type"] as? String) == "mixed" }
         inbounds.insert([
-            "type":        "socks",
-            "tag":         "socks-in",
+            "type":        "mixed",
+            "tag":         "mixed-in",
             "listen":      "127.0.0.1",
             "listen_port": port
         ], at: 0)
@@ -119,7 +122,7 @@ enum ConfigTransformer {
             // connect directly to 127.0.0.1:port, so process_name rules never see them.
             // Without this rule they would fall through to route.final = "direct".
             rules.insert([
-                "inbound":  ["socks-in"],
+                "inbound":  ["mixed-in"],
                 "outbound": proxyOutbound
             ], at: 0)
 

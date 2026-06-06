@@ -116,15 +116,15 @@ SOCKS5 mode operates in two sub-modes depending on whether the App Routing list 
 
 ### Sub-mode A: plain SOCKS5 (app list is empty)
 
-sing-box starts without a TUN interface. A SOCKS5 proxy is opened on `127.0.0.1:<port>`. YurecClient sets the **macOS system proxy** via `networksetup`, causing browsers, Electron apps, and any application that respects system proxy settings to automatically route traffic through sing-box. All proxied traffic goes through the VPN.
+sing-box starts without a TUN interface. An **HTTP/SOCKS5 proxy** (`mixed` inbound) is opened on `127.0.0.1:<port>`. YurecClient sets the **macOS system proxy** via `networksetup`, causing browsers, Electron apps, and any application that respects system proxy settings to automatically route traffic through sing-box. All proxied traffic goes through the VPN.
 
 ### Sub-mode B: hybrid TUN+SOCKS5 (app list is non-empty)
 
-Both a **TUN interface** (intercepts all system traffic) and a **SOCKS5 proxy** (for apps with an explicit proxy setting, e.g. Telegram) are started. The macOS system proxy is **not set** — TUN already intercepts everything.
+Both a **TUN interface** (intercepts all system traffic) and an **HTTP/SOCKS5 proxy** (`mixed` inbound, for apps with an explicit proxy setting, e.g. Telegram or CLI tools via `http_proxy`/`https_proxy`) are started. The macOS system proxy is **not set** — TUN already intercepts everything.
 
 Process-level routing:
 - Apps in the list → **through VPN** (`proxy` outbound)
-- Traffic arriving on the SOCKS5 inbound (Telegram and similar) → **through VPN** always
+- Traffic arriving on the mixed inbound (Telegram, CLI tools, and similar) → **through VPN** always
 - Everything else → **direct**
 
 This lets you route only specific apps (e.g. Claude, ChatGPT, VS Code) through the VPN while leaving the browser, mail client, and everything else on a direct connection.
@@ -156,17 +156,17 @@ ProxyManager.start(profilePath:, mode: .socks5(port:))
 
 **Plain SOCKS5** (list empty):
 1. Removes `tun` inbounds
-2. Replaces `socks` inbounds with a fresh one on the configured port
+2. Replaces `socks`/`mixed` inbounds with a fresh `mixed` inbound on the configured port
 3. Removes `fakeip` DNS servers
 4. `route.final` is left unchanged
 
 **Hybrid TUN+SOCKS5** (list non-empty):
 1. Keeps the `tun` inbound as-is
-2. Replaces `socks` inbounds with a fresh one on the configured port
+2. Replaces `socks`/`mixed` inbounds with a fresh `mixed` inbound on the configured port
 3. Keeps `fakeip` DNS (required for TUN)
 4. Prepends two rules to `route.rules`:
    ```json
-   { "inbound": ["socks-in"], "outbound": "proxy" }
+   { "inbound": ["mixed-in"], "outbound": "proxy" }
    { "process_name": ["Claude", "Claude Helper (Renderer)", ...], "outbound": "proxy" }
    ```
 5. Sets `route.final = "direct"` and `find_process = true`

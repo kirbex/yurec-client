@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.2.1] — 2026-06-06
+
+### Improvements
+
+- **HTTP proxy on the same port** — the SOCKS5 inbound is now a `mixed` inbound that accepts both SOCKS5 and HTTP CONNECT on the same port. CLI tools (e.g. `codex`, `curl`, `git`) can now route through the proxy using standard `http_proxy`/`https_proxy` environment variables without a separate port. Existing SOCKS5 integrations (Telegram, etc.) continue to work unchanged.
+
+---
+
 ## [1.2.0] — 2026-05-22
 
 ### Bug Fixes
