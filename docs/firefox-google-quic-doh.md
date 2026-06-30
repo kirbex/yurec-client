@@ -103,6 +103,12 @@ exists to close — just via a path that bypasses it entirely.
 (`network.trr.mode` → `5`). This returns Firefox to system DNS resolution, where the
 existing `ipv4_only` mitigation applies normally.
 
+**Confirmed working.** After applying `network.trr.mode = 5`, Google loads reliably with
+no further breakage. As a side effect, every other site in Firefox started loading
+noticeably faster too — DoH was adding an extra HTTPS round-trip to Cloudflare for every
+DNS lookup, on top of (and instead of) the local hijacked resolver; removing it sped up
+DNS resolution for all sites, not just Google.
+
 ---
 
 ## Why this is Firefox/Google-specific, independent of network or VPN provider
@@ -124,7 +130,9 @@ Both fixes are Firefox-side `about:config`/Settings changes, not code changes in
 YurecClient:
 
 1. `network.http.http3.enable = false` — applied.
-2. `network.trr.mode = 5` (DNS over HTTPS → Off) — recommended; not yet confirmed as
-   applied at the time of writing.
+2. `network.trr.mode = 5` (DNS over HTTPS → Off) — applied and confirmed working: Google
+   loads reliably, and general browsing latency in Firefox improved as well (one less
+   DNS round-trip per lookup).
 
-No code changes are required in this repository for this specific case.
+No code changes are required in this repository for this specific case — both fixes are
+Firefox-side settings.
